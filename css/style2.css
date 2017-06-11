@@ -100,7 +100,7 @@ form#formcart textarea {
 				-moz-border-radius: 3px;
 				-webkit-border-radius: 3px;
 				-khtml-border-radius: 3px;
-				border-radius: 3px;
+				border-radius: 20px;
 				font: italic 13px Georgia, "Times New Roman", Times, serif;
 				outline: none;
 				padding: 5px;
