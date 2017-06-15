@@ -5,9 +5,6 @@ version :
 */
 $plxPlugin = $d["plxPlugin"];
 $plxPlugin->traitementPanier();
-
-$paypal_amount= $plxPlugin->getParam('payment_paypal_amount');
-
 $afficheMessage = FALSE;
 if ( isset($_SESSION[$plxPlugin->plugName]['msgCommand'])
  && !empty($_SESSION[$plxPlugin->plugName]['msgCommand'])
@@ -99,6 +96,7 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
    <p class="tal"><span class="startw"><?php $plxPlugin->lang('L_PUBLIC_MANDATORY_FIELD'); ?></span></p>
 
    <form id="formcart" method="POST" action="#panier">
+<<<<<<< HEAD
      <?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierCoordsDebut')) # Hook Plugins ?>
      <fieldset>
       <legend>Your details</legend>
@@ -243,38 +241,4 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
 </div>
 
 <script type='text/javascript' src='<?php echo $plxPlugin->plxMotor->racine . PLX_PLUGINS.$plxPlugin->plugName;?>/js/panier.js?v0131'></script>
-<script type='text/javascript' src='<?php echo $d["plxPlugin"]->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/moment.min.js'></script>
-<script type='text/javascript' src='<?php echo $d["plxPlugin"]->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/pikaday.js'></script>
-
-<script type='text/javascript'>
-function includeCSSfile(href) {
-    var head_node = document.getElementsByTagName('head')[0];
-    var link_tag = document.createElement('link');
-    link_tag.setAttribute('rel', 'stylesheet');
-    link_tag.setAttribute('type', 'text/css');
-    link_tag.setAttribute('href', href);
-    head_node.appendChild(link_tag);
-}
-includeCSSfile("<?php echo $d["plxPlugin"]->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/css/pikaday.css")
-
-var mindays= <?php echo $plxPlugin->getParam("delivery_nb_days"); ?>;
-var today = new Date();
-var nextdelivery = new Date();
-nextdelivery.setDate(today.getDate() + mindays);
-
-var picker_date = new Pikaday(
-    {
-        field: document.getElementById('id_deliverydate'),
-        format: 'dddd Do MMMM YYYY',
-        firstDay: 1,
-        minDate: nextdelivery,
-        maxDate: new Date(2020, 12, 31),
-        yearRange: [2017,2020],
-        onSelect: function() {
-            var date = document.createTextNode(this.getMoment() + ' ');
-        }
-    }
-);
-</script>
-
 <?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierFin')) # Hook Plugins ?>

@@ -67,6 +67,10 @@ class plxMyShop extends plxPlugin {
    $this->addHook('plxMyShopShippingMethod', 'plxMyShopShippingMethod');
    $this->addHook('plxMyShopShowMiniPanier', 'plxMyShopShowMiniPanier');
    $this->addHook('plxMyShopPanierFin', 'inlineBasketJs');
+   if($this->getParam('delivery_date')){
+    $this->addHook('plxMyShopPanierFin', 'inlineDeliverydateJs');
+    $this->addHook('ThemeEndHead', 'themeEndHeadDeliverydateJs');
+   }
    if($this->getParam('localStorage')){//MyshopCookie
     $this->addHook('plxMyShopPanierCoordsMilieu', 'inlineLocalStorageHtml');
     $this->addHook('plxMyShopPanierFin', 'inlineLocalStorageJs');
@@ -336,9 +340,6 @@ class plxMyShop extends plxPlugin {
     postcode:document.getElementById("postcode").value,
     city:document.getElementById("city").value,
     country:document.getElementById("country").value,
-    deliverydate:document.getElementById("deliverydate").value,
-    delivery_interval:document.getElementById("delivery_interval").value,
-
     };
     localStorage.setItem("Shop_Deliver_Adress", JSON.stringify(temp));
     document.getElementById("alerte_sauvegarder").innerHTML = "<?php echo $this->lang('L_ADDRESS_SAVED'); ?><br /><?php echo $this->lang('L_DO_NOT_SHARED'); ?>";
@@ -367,7 +368,7 @@ class plxMyShop extends plxPlugin {
     document.getElementById("country").value = "";
    }
    function detail(event){
-    if (event.target.id != 'datepicker' && event.target.id != 'nomCadeau')//not #datepicker & #nomCadeau
+    if (event.target.id != 'id_deliverydate' && event.target.id != 'nomCadeau')//not #datepicker & #nomCadeau
      if (event.target.type == "text" || event.target.type == "email"){
       document.getElementById("bouton_effacer").style.display = "none";
       document.getElementById("bouton_sauvegarder").style.display = "";
@@ -484,6 +485,39 @@ if (error) {
  totalcommand.value = "<?php echo '<?php echo $this->pos_devise($totalpricettc+$totalpoidgshipping); ?>'; ?>";//total
 }
 </script>
+<?php
+ }
+
+ // hook js du Panier
+ public function inlineDeliverydateJs(){ ?>
+<script type='text/javascript'>
+var mindays= <?php echo $this->getParam("delivery_nb_days"); ?>;
+var today = new Date();
+var nextdelivery = new Date();
+nextdelivery.setDate(today.getDate() + mindays);
+<?php echo $this->plxMotor->aConf['default_lang']!='en' ? "moment.locale('".$this->plxMotor->aConf['default_lang']."');" : ''; ?>
+var picker_date = new Pikaday(
+    {
+        field: document.getElementById('id_deliverydate'),
+        format: '<?php $this->lang("L_FORMAT_PIKADAY"); ?>',
+<?php if($this->plxMotor->aConf['default_lang']!='en')$this->lang("L_I18N_PIKADAY"); ?>
+        firstDay: 1,
+        minDate: nextdelivery,
+        maxDate: new Date(<?php echo (date('Y')+3) ?>, 12, 31),
+        yearRange: [<?php echo date('Y') ?>,<?php echo (date('Y')+3) ?>],
+        onSelect: function() {
+            var date = document.createTextNode(this.getMoment() + ' ');
+        }
+    }
+);
+</script>
+<?php
+ }
+ // hook js du Panier
+ public function themeEndHeadDeliverydateJs(){ ?>
+  <link rel="stylesheet" href="<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/css/pikaday.css" media="screen"/>
+  <script type='text/javascript' src='<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/moment-<?php echo $this->plxMotor->aConf['default_lang']!='en' ? 'with-locales' : ''; ?>.min.js'></script>
+  <script type='text/javascript' src='<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/pikaday.js'></script>
 <?php
  }
 
@@ -1402,14 +1436,21 @@ if (error) {
   plxUtils::cdataCheck($_POST['country'])."<br/>".
   $this->getlang('L_EMAIL_TEL').
   plxUtils::cdataCheck($_POST['tel'])
-  ."<br/><br/>".
-  $this->getlang('L_PAIEMENT').": ".$this->getlang('L_PAYMENT_'.strtoupper($_POST['methodpayment']));
+  ."<br/><br/><strong>".
+  $this->getlang('L_PAIEMENT')." :</strong> ".$this->getlang('L_PAYMENT_'.strtoupper($_POST['methodpayment']));
 
   $messCommon = "<br/><br/>" . (!isset($_POST["choixCadeau"])
    ? $this->getlang('L_EMAIL_NOGIFT')
-   : $this->getlang('L_EMAIL_GIFT_FOR')." <strong>".htmlspecialchars($_POST["nomCadeau"]) . "</strong>."
+   : "<strong>".$this->getlang('L_EMAIL_GIFT_FOR')." :</strong> ".htmlspecialchars($_POST["nomCadeau"])
   );
-  $messCommon .= "<br/>".$this->getlang('L_EMAIL_PRODUCTLIST')." :<br/><ul>";
+  if($this->getparam('delivery_date')){
+   $messCommon .= "<br/><br/>";
+   $messCommon .= "<strong>".$this->getlang('L_EMAIL_DELIVERYDATE')." :</strong> ";
+   $messCommon .= plxUtils::cdataCheck($_POST['deliverydate'])."<br/>";
+   $messCommon .= "<strong>".$this->getlang('L_EMAIL_DELIVERYTIME')." :</strong> ";
+   $messCommon .= plxUtils::cdataCheck($_POST['delivery_interval'])."<br/>";
+  }
+  $messCommon .= "<br/><br/><strong>".$this->getlang('L_EMAIL_PRODUCTLIST')." :</strong><br/><ul>";
   foreach ($productscart as $k => $v){
    $messCommon.="<li>{$v['nombre']} × ".$v['name']."&nbsp;: ".$this->pos_devise($v['pricettc']). ((float)$v['poidg']>0?" ". $this->getlang('L_FOR')." " .$v['poidg']."&nbsp;kg":"")."</li>";
   }
@@ -1423,12 +1464,6 @@ if (error) {
   $messCommon .= "<strong>" . $this->getlang('L_TOTAL_BASKET')." ".$this->pos_devise(($totalpricettc+$totalpoidgshipping)). "</strong>";
   $messCommon .= "<br/><br/>";
   $messCommon .= $this->getlang('L_EMAIL_COMMENT')." : ";
-  $messCommon .= "<br/>";
-  $messCommon .= "<br/>";
-  $messCommon .= $this->getlang('L_EMAIL_DELIVERYDATE');
-  $messCommon .= plxUtils::cdataCheck($_POST['deliverydate'])."<br/>";
-  $messCommon .= $this->getlang('L_EMAIL_DELIVERYTIME');
-  $messCommon .= plxUtils::cdataCheck($_POST['delivery_interval'])."<br/>";
 
   $messCommon .= $_POST['msg'];
 
@@ -1496,7 +1531,7 @@ if (error) {
     plxUtils::cdataCheck($_POST['postcode'])." ".plxUtils::cdataCheck($_POST['city'])."<br/>".
     plxUtils::cdataCheck($_POST['country'])."<br/>".
     "<strong>Tel : </strong>".plxUtils::cdataCheck($_POST['tel']) .
-    "<br/><br/><strong>" . $this->getlang('L_EMAIL_CUST_PAYMENT') . ": </strong>". $method;
+    "<br/><br/><strong>" . $this->getlang('L_EMAIL_CUST_PAYMENT') . " : </strong>". $method;
 
     $sujet = $this->getlang('L_EMAIL_CUST_SUBJECT') . $SHOPNAME;
     $destinataire = $_POST['email'];
@@ -1520,10 +1555,10 @@ if (error) {
      $commandeContent="<!DOCTYPE html>
 <html>
 <head>
-<title>".$this->getlang('L_FILE_ORDER').date($this->getLang('DATEFORMAT'))."</title>
-<meta charset=\"UTF-8\">
-<meta name=\"description\" content=\"Commande\">
-<meta name=\"author\" content=\"plxMyShop\">
+<title>".$this->getlang('L_FILE_ORDER').' '.date($this->getLang('DATEFORMAT')).'</title>
+<meta charset="UTF-8">
+<meta name="description" content="'.$this->getLang('L_DEFAULT_OBJECT').'">
+<meta name="author" content="'.$this->plugName."\">
 </head>
 <body>
 <hr/>
@@ -1548,13 +1583,13 @@ $message
    if ( (!isset($_POST['email']) || empty($_POST['email']) || $_POST['email']=="") ){
     $msgCommand.= "<h5 class='msgerror'>". $this->getlang('L_MISSING_EMAIL') ."</h5>";
    }
-   if (  (!isset($_POST['firstname']) ||  plxUtils::cdataCheck($_POST['firstname'])=="") ){
+   if ( (!isset($_POST['firstname']) ||  plxUtils::cdataCheck($_POST['firstname'])=="") ){
     $msgCommand.= "<h5 class='msgerror'>". $this->getlang('L_MISSING_FIRSTNAME') ."</h5>";
    }
-   if ( (!isset($_POST['lastname']) ||  plxUtils::cdataCheck($_POST['lastname'])=="")  ){
+   if ( (!isset($_POST['lastname']) ||  plxUtils::cdataCheck($_POST['lastname'])=="") ){
     $msgCommand.= "<h5 class='msgerror'>". $this->getlang('L_MISSING_LASTNAME')  ."</h5>";
    }
-   if ( (!isset($_POST['adress']) ||  plxUtils::cdataCheck($_POST['adress'])=="")  ){
+   if ( (!isset($_POST['adress']) ||  plxUtils::cdataCheck($_POST['adress'])=="") ){
     $msgCommand.= "<h5 class='msgerror'>". $this->getlang('L_MISSING_ADDRESS') ."</h5>";
    }
    if ( (!isset($_POST['postcode']) ||  plxUtils::cdataCheck($_POST['postcode'])=="") ){

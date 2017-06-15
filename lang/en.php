@@ -229,9 +229,8 @@ $LANG = array(
 'L_EMAIL_ERROR1'                    => 'An error occured during the sending of your summary email.',
 'L_EMAIL_ERROR2'                    => 'An error occured during the sending of your order email.',
 
-'L_EMAIL_DELIVERYDATE'              => 'Delivery date: ', # /ppmt nouvelle fonction
-'L_EMAIL_DELIVERYTIME'              => 'Delivery timeslot: ', # /ppmt nouvelle fonction
-
+'L_EMAIL_DELIVERYDATE'              => 'Delivery date', # /ppmt nouvelle fonction
+'L_EMAIL_DELIVERYTIME'              => 'Delivery timeslot', # /ppmt nouvelle fonction
 
 'L_FILE_ORDER'                      => 'Order of',
 
@@ -282,7 +281,7 @@ $LANG = array(
 'L_CONFIG_LIBELLE_CGV'              => 'Wording of the General Sales T&amp;C . (The URL )',
 'L_CONFIG_LANGUE_CGV_SYSTEME'       => "Use plugin default phrases for the T&amp;C.",
 'L_CONFIG_URL_CGV'                  => 'URL for the T&amp;C.',
-
+'L_CONFIG_AMOUNT_PAYPAL'            => "Minimum amount to activate",#a traduire
 #boutonPanier.php
 'L_NOTICE_NOADDCART'                => 'En rupture de stock',#a traduire
 
@@ -298,6 +297,7 @@ $LANG = array(
 'L_TOTAL_PRICE'                     => 'Total price',
 'L_PUBLIC_DELIVERYDATE'             => 'Select your delivery date',  # /ppmt nouvelle option
 'L_PUBLIC_DELIVERYTIME'             => 'Select your delivery timeslot',  # /ppmt nouvelle option
-'L_CHOICE_DELIVERYTIME'             => 'Choose one timeslot'  # /ppmt nouvelle option
-
+'L_CHOICE_DELIVERYTIME'             => 'Choose one timeslot',  # /ppmt nouvelle option
+'L_FORMAT_PIKADAY'                  => 'dddd Do MMMM YYYY',
+'L_I18N_PIKADAY'                    => ''# unused pikaday it's in english
 );
