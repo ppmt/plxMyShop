@@ -1088,10 +1088,12 @@ var picker_date = new Pikaday(
             $item['id'] = $pId;
             $item['image'] = $this->aProds[$pId]['image'];
             $item['noaddcart'] = $this->aProds[$pId]['noaddcart'];
-            if (intval($this->aProds[$pId]['iteminstock']) >= intval($nb)){
-                $item['iteminstock'] = intval($this->aProds[$pId]['iteminstock']) - intval($nb);}
+            if (intval($this->aProds[$pId]['iteminstock']) > intval($nb)){
+                $item['iteminstock'] = intval($this->aProds[$pId]['iteminstock']) - intval($nb);
+                $item['noaddcart'] = $this->aProds[$pId]['noaddcart'];}
             else {
-                $item['iteminstock'] = 0; }
+                $item['iteminstock'] = 0;
+                $item['noaddcart'] = 1;}
             $item['notice_noaddcart'] = $this->aProds[$pId]['notice_noaddcart'];
             $item['pricettc'] = $this->aProds[$pId]['pricettc'];
             $item['poidg'] = $this->aProds[$pId]['poidg'];
@@ -1610,7 +1612,6 @@ $message
      chmod($nf, 0644);
      #MAJ du nombre d'article en stock pour chaque produit commander
      $this->editItemProduct($_SESSION[$this->plugName]['prods']);
-     #$this->editProduct($item);
      unset($_SESSION[$this->plugName]['prods']);
      unset($_SESSION[$this->plugName]['ncart']);
     }else{
