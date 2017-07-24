@@ -39,9 +39,8 @@ if(!empty($_POST) AND isset($plxPlugin->aProds[$_POST['id']])) {
  $title = $plxPlugin->aProds[$id]['name'];
  $url = $plxPlugin->aProds[$id]['url'];
  $active = $plxPlugin->aProds[$id]['active'];
- $stockmgmt = $plxPlugin->aProds[$id]['stock_mgmnt'];
- $iteminstock = $plxPlugin->aProds[$id]['iteminstock'];
  $noaddcart = $plxPlugin->aProds[$id]['noaddcart'];
+ $iteminstock = $plxPlugin->aProds[$id]['iteminstock'];
  $notice_noaddcart = $plxPlugin->aProds[$id]['notice_noaddcart'];
  $title_htmltag = $plxPlugin->aProds[$id]['title_htmltag'];
  $meta_description = $plxPlugin->aProds[$id]['meta_description'];
@@ -160,19 +159,6 @@ $_SESSION[$plxPlugin->plugName]["urlImages"] = $plxAdmin->urlRewrite($plxPlugin-
         <?php plxUtils::printInput('iteminstock',plxUtils::strCheck($iteminstock),'text','0-255'); ?>
       </div>
      </div>
-
-
-     <div class="grid">
-      <div class="col sml-12 med-5 label-centered">
-       <label for="id_stockmgmt"><?php $plxPlugin->lang('L_PRODUCTS_BASKET_BUTTON') ;?></label>
-      </div>
-      <div class="col sml-12 med-7">
-       <script type="text/javascript">function toggleStockmgmt(a){var b = document.getElementById('id_notice_noaddcart');var c = document.getElementById('config_notice_noaddcart');var d = document.getElementById('cartImg');if(a==1){b.setAttribute("placeholder","<?php echo $plxPlugin->getLang('L_NOTICE_NOADDCART').' ('.$plxPlugin->getLang('L_BY_DEFAULT').')';?>");c.classList.remove("hide");d.src = "";}else{b.removeAttribute("placeholder");c.classList.add("hide");d.src = "<?php echo PLX_PLUGINS.$plxPlugin->plugName.'/images/full.png'; ?>";}}</script>
-       <?php plxUtils::printSelect('stockmgmt', array('1'=>L_YES,'0'=>L_NO), plxUtils::strCheck($stockmgmt), false,'" onChange="toggleStockmgmt(this.options[this.selectedIndex].value);'); ?>
-      </div>
-     </div>
-
-
      <div class="grid">
       <div class="col sml-12 med-5 label-centered">
        <label for="id_noaddcart"><?php $plxPlugin->lang('L_PRODUCTS_BASKET_BUTTON') ;?>&nbsp;:<?php echo '<img id="cartImg" class="noaddcartImg" src="'.PLX_PLUGINS.$plxPlugin->plugName.'/images/'.(empty($noaddcart)?'full':'empty').'.png" />'; ?></label>
@@ -287,3 +273,4 @@ $_SESSION[$plxPlugin->plugName]["urlImages"] = $plxAdmin->urlRewrite($plxPlugin-
  </div><!-- fi tabContainer -->
 </form>
 <script type="text/javascript" src="<?php echo PLX_PLUGINS.$plxPlugin->plugName."/js/tabs.js" ?>"></script>
+
