@@ -1108,7 +1108,6 @@ var picker_date = new Pikaday(
    return true;//break editProduct() (only change stock & basket button)
   }
 ?><?php
->>>>>>> origin/gestion_stock
  }
 
  /**
@@ -1613,14 +1612,9 @@ $message
      fputs($monfichier, $commandeContent);
      fclose($monfichier);
      chmod($nf, 0644);
-<<<<<<< HEAD
-     #MAJ du nombre d'article en stock pour chaque produit commander
-     $this->editItemProduct($_SESSION[$this->plugName]['prods']);
-=======
      #MAJ du nombre d'article en stock pour chaques produits commandés
      $this->editStocks($_SESSION[$this->plugName]['prods']);
      #$this->editProduct($item);
->>>>>>> origin/gestion_stock
      unset($_SESSION[$this->plugName]['prods']);
      unset($_SESSION[$this->plugName]['ncart']);
     }else{
