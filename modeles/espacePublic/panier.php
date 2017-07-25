@@ -54,49 +54,51 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
            $totalpricettc += $prixttc;
            $totalpoidg += $poidg;
            $nprod++;
-          ?>
-          <tr>
-           <td><a href="<?php echo $plxPlugin->productRUrl($pId); ?>"><?php echo plxUtils::strCheck($plxPlugin->aProds[$pId]['name']); ?></a></td>
-           <td class="nombre"><?php echo $plxPlugin->pos_devise($prixUnitaire);?></td>
-           <td width="10%"><input type="number" name="nb[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($nb);?>" min="0" /></td>
-           <td class="nombre"><input type="submit" class="red" name="retirerProduit[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($plxPlugin->getLang('L_DEL'));?>" /></td>
-           <td class="nombre"><?php echo $plxPlugin->pos_devise($prixttc);?></td>
-          </tr>
-          <?php   } // FIN foreach ($_SESSION[$plxPlugin->plugName]['prods'] as $pId => $nb) ?>
-          <tr>
-           <td class="nombre" colspan="3"><input type="submit" name="recalculer" value="<?php echo htmlspecialchars($plxPlugin->getLang('L_PANIER_RECALCULER'));?>" /></td>
-           <td class="nombre"><?php $plxPlugin->lang('L_TOTAL_BASKET');?>&nbsp;:</td>
-           <td class="nombre"><?php echo $plxPlugin->pos_devise($totalpricettc);?></td>
-          </tr>
-          <?php
-           $totalpoidgshipping = 0;
-           if($plxPlugin->getParam("shipping_colissimo")){ ?>
-          <tr>
-           <td class="nombre" colspan="5"><?php $totalpoidgshipping = $plxPlugin->shippingMethod($totalpoidg, $totalpricettc); ?></td>
-          </tr>
-          <tr>
-           <td class="nombre" colspan="4"><?php echo $plxPlugin->getLang('L_EMAIL_DELIVERY_COST').($plxPlugin->getParam("shipping_by_price") ? "" : ($totalpoidg?" ".$plxPlugin->getLang("L_FOR")." ".$totalpoidg."&nbsp;kg":""));?>&nbsp;:</td>
-           <td class="nombre" id="spanshipping"><?php echo $plxPlugin->pos_devise($totalpoidgshipping);?></td>
-          </tr>
-          <tr class="msgyeah2">
-           <td class="nombre" colspan="4"><?php echo htmlspecialchars($plxPlugin->getLang('L_TOTAL_BASKET').(($plxPlugin->getParam("shipping_colissimo"))?$plxPlugin->getLang('L_TOTAL_BASKET_PORT'):''));?>&nbsp;:</td>
-           <td class="nombre" id='totalCart'><?php echo $plxPlugin->pos_devise($totalpricettc + $totalpoidgshipping);?></td>
-          </tr>
-          <?php   } ?>
-         </table>
-
-         <?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierFormProdsFin')); # Hook Plugins ?>
-         <noscript><p class="red"><?php $plxPlugin->lang('L_PUBLIC_NOJS'); ?></p></noscript>
-        </form>
-        <?php } //fin isset($_SESSION[$plxPlugin->plugName]['prods']) && $_SESSION[$plxPlugin->plugName]['prods']
-
-       if (0 === $nprod && !$afficheMessage) {?> <em><?php $plxPlugin->lang('L_PUBLIC_NOPRODUCT'); ?></em> <?php } ?>
+           $maxPnr = $plxPlugin->aProds[$pId]['iteminstock'] != '' ? 'max="'.$plxPlugin->aProds[$pId]['iteminstock'].'" ' : '';
+         ?>
+         <tr>
+          <td><a href="<?php echo $plxPlugin->productRUrl($pId); ?>"><?php echo plxUtils::strCheck($plxPlugin->aProds[$pId]['name']); ?></a></td>
+          <td class="nombre"><?php echo $plxPlugin->pos_devise($prixUnitaire);?></td>
+          <td width="10%"><input type="number" name="nb[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($nb);?>" min="0" <?php echo $maxPnr; ?>/></td>
+          <td class="nombre"><input type="submit" class="red" name="retirerProduit[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($plxPlugin->getLang('L_DEL'));?>" /></td>
+          <td class="nombre"><?php echo $plxPlugin->pos_devise($prixttc);?></td>
+         </tr>
+<?php   } // FIN foreach ($_SESSION[$plxPlugin->plugName]['prods'] as $pId => $nb) ?>
+         <tr>
+          <td class="nombre" colspan="3"><input type="submit" name="recalculer" value="<?php echo htmlspecialchars($plxPlugin->getLang('L_PANIER_RECALCULER'));?>" /></td>
+          <td class="nombre"><?php $plxPlugin->lang('L_TOTAL_BASKET');?>&nbsp;:</td>
+          <td class="nombre"><?php echo $plxPlugin->pos_devise($totalpricettc);?></td>
+         </tr>
+<?php
+        $totalpoidgshipping = 0;
+        if($plxPlugin->getParam("shipping_colissimo")){ ?>
+         <tr>
+          <td class="nombre" colspan="5"><?php $totalpoidgshipping = $plxPlugin->shippingMethod($totalpoidg, $totalpricettc); ?></td>
+         </tr>
+         <tr>
+          <td class="nombre" colspan="4"><?php echo $plxPlugin->getLang('L_EMAIL_DELIVERY_COST').($plxPlugin->getParam("shipping_by_price") ? "" : ($totalpoidg?" ".$plxPlugin->getLang("L_FOR")." ".$totalpoidg."&nbsp;kg":""));?>&nbsp;:</td>
+          <td class="nombre" id="spanshipping"><?php echo $plxPlugin->pos_devise($totalpoidgshipping);?></td>
+         </tr>
+         <tr class="msgyeah2">
+          <td class="nombre" colspan="4"><?php echo htmlspecialchars($plxPlugin->getLang('L_TOTAL_BASKET').
+           (($plxPlugin->getParam("shipping_colissimo"))?$plxPlugin->getLang('L_TOTAL_BASKET_PORT'):''));?>&nbsp;:</td>
+          <td class="nombre" id='totalCart'><?php echo $plxPlugin->pos_devise($totalpricettc + $totalpoidgshipping);?></td>
+         </tr>
+<?php   } ?>
+        </table>
+<?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierFormProdsFin')); # Hook Plugins ?>
+        <noscript><p class="red"><?php $plxPlugin->lang('L_PUBLIC_NOJS'); ?></p></noscript>
+       </form>
+<?php
+     } //fin isset($_SESSION[$plxPlugin->plugName]['prods']) && $_SESSION[$plxPlugin->plugName]['prods']
+    if (0 === $nprod && !$afficheMessage) {?>
+     <em><?php $plxPlugin->lang('L_PUBLIC_NOPRODUCT'); ?></em>
+<?php } ?>
    </div>
 
    <p class="tal"><span class="startw"><?php $plxPlugin->lang('L_PUBLIC_MANDATORY_FIELD'); ?></span></p>
 
    <form id="formcart" method="POST" action="#panier">
-<<<<<<< HEAD
      <?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierCoordsDebut')) # Hook Plugins ?>
      <fieldset>
       <legend>Your details</legend>
@@ -142,11 +144,11 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
       <?php eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierCoordsMilieu')) # Hook Plugins to display the saving of details ?>
      </fieldset>
 
+        <?php if($plxPlugin->getParam("delivery_date")){ ?>
      <fieldset>
       <legend>Delivery dates</legend>
       <ol>
        <li>
-        <?php if($plxPlugin->getParam("delivery_date")){ ?>
         <?php $plxPlugin->lang('L_PUBLIC_DELIVERYDATE'); ?><span class='star'>*</span>&nbsp;:<br />
         <?php plxUtils::printInput('deliverydate',$var['deliverydate'], 'text','',false,'classOrNot" required="required') ?>
        </li>  
@@ -171,9 +173,9 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
         <?php $plxPlugin->lang('L_PUBLIC_DELIVERYTIME'); ?><span class='star'>*</span>&nbsp;:<br />
         <?php plxUtils::printSelect('delivery_interval',$intervals, 2,false,'classOrNot" required="required') ?>
        </li>
-       <?php } ?>
       </ol>
      </fieldset>
+       <?php } ?>
 
      <fieldset>
       <legend>Optional</legend>
