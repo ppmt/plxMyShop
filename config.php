@@ -126,8 +126,8 @@ if(!empty($_POST)){
  $plxPlugin->setParam('libelleCGV', $_POST['libelleCGV'], 'string');
  $plxPlugin->setParam('urlCGV', $_POST['urlCGV'], 'string');
 
- $plxPlugin->setParam('racine_commandes', (empty(trim($_POST['racine_commandes']))?'data/commandes/':trim($_POST['racine_commandes'])), 'string');;
- $plxPlugin->setParam('racine_products', (empty(trim($_POST['racine_products']))?'data/products/':trim($_POST['racine_products'])), 'string');
+ $plxPlugin->setParam('racine_commandes', (!(trim($_POST['racine_commandes']))?'data/commandes/':trim($_POST['racine_commandes'])), 'string');
+ $plxPlugin->setParam('racine_products', (!(trim($_POST['racine_products']))?'data/products/':trim($_POST['racine_products'])), 'string');
 
  $plxPlugin->saveParams();
  header('Location: parametres_plugin.php?p='.$plxPlugin->plugName);
@@ -203,8 +203,8 @@ $var['useLangCGVDefault'] = $plxPlugin->aLangs ? $plxPlugin->getParam('useLangCG
 $var["libelleCGV"] = ("" === $plxPlugin->getParam("libelleCGV")) ? $plxPlugin->getLang("L_COMMANDE_LIBELLE_DEFAUT") : $plxPlugin->getParam("libelleCGV");
 $var["urlCGV"] = ("" === $plxPlugin->getParam("urlCGV")) ? "" : $plxPlugin->getParam("urlCGV");
 
-$var['racine_commandes'] = (empty(trim($plxPlugin->getParam('racine_commandes')))?'data/commandes/':trim($plxPlugin->getParam('racine_commandes')));
-$var['racine_products'] = (empty(trim($plxPlugin->getParam('racine_products')))?'data/products/':trim($plxPlugin->getParam('racine_products')));
+$var['racine_commandes'] = (!$plxPlugin->getParam('racine_commandes')?'data/commandes/':trim($plxPlugin->getParam('racine_commandes')));
+$var['racine_products'] = (!$plxPlugin->getParam('racine_products')?'data/products/':trim($plxPlugin->getParam('racine_products')));
 
 # On récupère les templates des pages statiques
 $aTemplates = array();

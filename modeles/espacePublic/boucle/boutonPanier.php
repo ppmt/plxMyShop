@@ -7,11 +7,10 @@ $plxPlugin = $d["plxPlugin"];
 $plxPlugin->traitementAjoutPanier();
 
 $minPnr = 1;
-$maxPnr = $plxPlugin->aProds[$d["k"]]['iteminstock'] != '' ? 'max="'.$plxPlugin->aProds[$d["k"]]['iteminstock'].'" ' : '';
+$maxPnr = $plxPlugin->aProds[$plxPlugin->default_lang][$d["k"]]['iteminstock'] != '' ? 'max="'.$plxPlugin->aProds[$plxPlugin->default_lang][$d["k"]]['iteminstock'].'" ' : '';
 $prodsPnr = 1;
 $txtPnrBtn = htmlspecialchars($plxPlugin->getLang('L_PUBLIC_ADD_BASKET'));
 $classPnrBtn = "blue";
-
 if (isset($_SESSION[$plxPlugin->plugName]["prods"][$d["k"]])){
  if ($_SESSION[$plxPlugin->plugName]["prods"][$d["k"]]<1) {
   $_SESSION[$plxPlugin->plugName]["ncart"] -= $_SESSION[$plxPlugin->plugName]["prods"][$d["k"]];
@@ -24,7 +23,7 @@ if (isset($_SESSION[$plxPlugin->plugName]["prods"][$d["k"]])){
  }
 }
 $nbProdtype = (count($d["pileModeles"]) === 1)?'hidden':'number'; //dansShortcode = hidden
-if(empty($plxPlugin->aProds[$d["k"]]['noaddcart'])){
+if(empty($plxPlugin->aProds[$plxPlugin->default_lang][$d["k"]]['noaddcart'])){
 ?>
 <form action="#prod<?php echo intval($d["k"]); ?>" method="POST" id="FormAddProd<?php echo $d["k"]; ?>" class="formulaireAjoutProduit" onsubmit="chngNbProd('<?php echo $d["k"]; ?>',true);">
  <input type="hidden" name="idP" value="<?php echo htmlspecialchars($d["k"]);?>">
@@ -33,5 +32,5 @@ if(empty($plxPlugin->aProds[$d["k"]]['noaddcart'])){
 </form>
 <?php
 } else {
- echo '<span class="notice_noaddcart">'.(empty($plxPlugin->aProds[$d["k"]]['notice_noaddcart'])?$plxPlugin->getLang('L_NOTICE_NOADDCART'):$plxPlugin->aProds[$d["k"]]['notice_noaddcart']).'</span>'.PHP_EOL;
+ echo '<span class="notice_noaddcart">'.(empty($plxPlugin->aProds[$plxPlugin->default_lang][$d["k"]]['notice_noaddcart'])?$plxPlugin->getLang('L_NOTICE_NOADDCART'):$plxPlugin->aProds[$plxPlugin->default_lang][$d["k"]]['notice_noaddcart']).'</span>'.PHP_EOL;
 }

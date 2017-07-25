@@ -45,16 +45,16 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
           <th colspan="2" class="nombre"><?php $plxPlugin->lang('L_TOTAL_PRICE'); ?></th>
          </tr>
 <?php   foreach ($_SESSION[$plxPlugin->plugName]['prods'] as $pId => $nb) {
-           $prixUnitaire = (float) $plxPlugin->aProds[$pId]['pricettc'];
+           $prixUnitaire = (float) $plxPlugin->aProds[$plxPlugin->default_lang][$pId]['pricettc'];
            $prixttc = $prixUnitaire * $nb;
-           $poidg = (float) $plxPlugin->aProds[$pId]['poidg'] * $nb;
+           $poidg = (float) $plxPlugin->aProds[$plxPlugin->default_lang][$pId]['poidg'] * $nb;
            $totalpricettc += $prixttc;
            $totalpoidg += $poidg;
            $nprod++;
-           $maxPnr = $plxPlugin->aProds[$pId]['iteminstock'] != '' ? 'max="'.$plxPlugin->aProds[$pId]['iteminstock'].'" ' : '';
+           $maxPnr = $plxPlugin->aProds[$plxPlugin->default_lang][$pId]['iteminstock'] != '' ? 'max="'.$plxPlugin->aProds[$plxPlugin->default_lang][$pId]['iteminstock'].'" ' : '';
 ?>
          <tr>
-          <td><a href="<?php echo $plxPlugin->productRUrl($pId); ?>"><?php echo plxUtils::strCheck($plxPlugin->aProds[$pId]['name']); ?></a></td>
+          <td><a href="<?php echo $plxPlugin->productRUrl($pId); ?>"><?php echo plxUtils::strCheck($plxPlugin->aProds[$plxPlugin->default_lang][$pId]['name']); ?></a></td>
           <td class="nombre"><?php echo $plxPlugin->pos_devise($prixUnitaire);?></td>
           <td width="10%"><input type="number" name="nb[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($nb);?>" min="0" <?php echo $maxPnr; ?>/></td>
           <td class="nombre"><input type="submit" class="red" name="retirerProduit[<?php echo $pId;?>]" value="<?php echo htmlspecialchars($plxPlugin->getLang('L_DEL'));?>" /></td>
@@ -180,7 +180,7 @@ eval($plxPlugin->plxMotor->plxPlugins->callHook('plxMyShopPanierDebut'));
      <label for="valideCGV">
       <input type="checkbox" name="valideCGV" id="valideCGV"<?php echo (!isset($_POST["valideCGV"])) ? "" : " checked=\"checked\"";?>  required="required" />
       <span class='star'>*</span>
-      <a href="<?php echo $plxPlugin->plxMotor->urlRewrite($plxPlugin->getParam("urlCGV"));?>"><?php echo htmlspecialchars((empty($plxPlugin->getParam('useLangCGVDefault')))?$plxPlugin->getParam('libelleCGV'):$plxPlugin->getLang('L_COMMANDE_LIBELLE_DEFAUT'));?></a>
+      <a href="<?php echo $plxPlugin->plxMotor->urlRewrite($plxPlugin->getParam("urlCGV"));?>"><?php echo htmlspecialchars((!($plxPlugin->getParam('useLangCGVDefault')))?$plxPlugin->getParam('libelleCGV'):$plxPlugin->getLang('L_COMMANDE_LIBELLE_DEFAUT'));?></a>
      </label>
 <?php } ?>
     <input type="submit" class="green" name="validerCommande" id="btnCart" value="<?php $plxPlugin->lang('L_PUBLIC_VALIDATE_ORDER'); ?>" /><br />

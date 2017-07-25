@@ -82,11 +82,12 @@ class plxMyShop extends plxPlugin {
    }
   }
   // Ajout de variables non protégé facilement accessible via $(plxShow->)plxMotor->plxPlugins->aPlugins['plxMyShop']->aConf['racine_XXX'] dans les themes ou dans d'autres plugins.
-  $this->aConf['racine_products'] = (empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products'));
-  $this->aConf['racine_commandes'] = (empty($this->getParam('racine_commandes'))?'data/commandes/':$this->getParam('racine_commandes'));
-  if($this->aLangs && !empty($default_lang))
+  $this->aConf['racine_products'] = (!$this->getParam('racine_products')?'data/products/':$this->getParam('racine_products'));
+  $this->aConf['racine_commandes'] = (!$this->getParam('racine_commandes')?'data/commandes/':$this->getParam('racine_commandes'));
+  if($this->aLangs && !empty($default_lang)){
    $this->aConf['racine_products_lang'] = $this->aConf['racine_products'].$default_lang.'/';
-
+   $this->aConf['racine_commandes_lang'] = $this->aConf['racine_commandes'].$default_lang.'/';
+  }
   $this->getProducts();
 
   if (!is_dir(PLX_ROOT.$this->aConf['racine_commandes'])){
@@ -95,6 +96,17 @@ class plxMyShop extends plxPlugin {
   if (!is_file(PLX_ROOT.$this->aConf['racine_commandes'].'index.html')){
    $mescommandeindex = fopen(PLX_ROOT.$this->aConf['racine_commandes'].'index.html', 'w+');
    fclose($mescommandeindex);
+  }
+  if($this->aLangs){//créer les dossiers de sauvegarde si MyMultilingue
+   foreach ($this->aLangs as $lang){
+    if (!is_dir(PLX_ROOT.$this->aConf['racine_commandes'].$lang.'/')){
+     mkdir(PLX_ROOT.$this->aConf['racine_commandes'].$lang.'/', 0755, true);
+    }
+    if (!is_file(PLX_ROOT.$this->aConf['racine_commandes'].$lang.'/index.html')){
+     $mescommandeindex = fopen(PLX_ROOT.$this->aConf['racine_commandes'].$lang.'/index.html', 'w+');
+     fclose($mescommandeindex);
+    }
+   }
   }
 
   // méthodes de paiement
@@ -123,7 +135,7 @@ class plxMyShop extends plxPlugin {
   //Mise a jour des variables de sessions du panier
   if (isset($_SESSION[$this->plugName]['prods'])){//si on a des produits dans la sessions
    foreach ($_SESSION[$this->plugName]['prods'] as $pId => $nb) {//on boucle dessus
-    if (!isset($this->aProds[$pId]) OR $this->aProds[$pId]['active']==0 OR $this->aProds[$pId]['noaddcart']==1){//Si Produit désactivé/supprimé/indisponible(noAddCartButton) entre temps
+    if (!isset($this->aProds[$this->default_lang][$pId]) OR $this->aProds[$this->default_lang][$pId]['active']==0 OR $this->aProds[$this->default_lang][$pId]['noaddcart']==1){//Si Produit désactivé/supprimé/indisponible(noAddCartButton) entre temps
      $_SESSION[$this->plugName]['ncart'] -= $nb;//on recalcule le nb de prod
      unset($_SESSION[$this->plugName]['prods'][$pId]);//on efface sa variable de session
     }
@@ -134,6 +146,7 @@ class plxMyShop extends plxPlugin {
     unset($_SESSION[$this->plugName]["prods"][$_POST['idP']]);//on efface sa variable de session
    }
   }
+  //var_dump($this->lang,$this->aLangs,$this->default_lang);
  }
 
  /**
@@ -142,8 +155,8 @@ class plxMyShop extends plxPlugin {
  **/
  public function plxShowPageTitle() {
   if($this->plxMotor->mode == 'product') {
-   $affiche = "<?php 
-    \$aProd = \$this->plxMotor->plxPlugins->aPlugins['".$this->plugName."']->aProds[ '".$this->idProduit."' ];
+   $affiche = "<?php
+    \$aProd = \$this->plxMotor->plxPlugins->aPlugins['".$this->plugName."']->aProds[ '".$this->default_lang."' ][ '".$this->idProduit."' ];//langue de session (a ajouté & ailleurs i think)
     \$title_htmltag =  \$aProd['title_htmltag'];
     \$title = \$title_htmltag !='' ? \$title_htmltag : \$aProd['name'];
     \$subtitle = \$this->plxMotor->aConf['title'];
@@ -171,8 +184,8 @@ class plxMyShop extends plxPlugin {
  **/
  public function plxShowMeta() {
   if($this->plxMotor->mode == 'product') {
-   $affiche = "<?php 
-    \$aProd = \$this->plxMotor->plxPlugins->aPlugins['".$this->plugName."']->aProds[ '".$this->idProduit."' ];
+   $affiche = "<?php
+    \$aProd = \$this->plxMotor->plxPlugins->aPlugins['".$this->plugName."']->aProds[ '".$this->default_lang."' ][ '".$this->idProduit."' ];
     if(!empty(\$aProd['meta_'.\$meta]))
      echo '<meta name=\"'.\$meta.'\" content=\"'.plxUtils::strCheck(\$aProd['meta_'.\$meta]).'\" />'.PHP_EOL;
     elseif(!empty(\$this->plxMotor->aConf['meta_'.\$meta]))
@@ -207,9 +220,10 @@ class plxMyShop extends plxPlugin {
  * @author	Stephane F
  **/
  public function AdminTopEndHead() {
-  if ((basename($_SERVER['SCRIPT_NAME'])=='plugin.php' || basename($_SERVER['SCRIPT_NAME'])=='parametres_plugin.php') && (isset($_GET['p']) && $_GET['p']==$this->plugName)) {
+  if (((basename($_SERVER['SCRIPT_NAME'])=='plugin.php' || basename($_SERVER['SCRIPT_NAME'])=='parametres_plugin.php')) && (isset($_GET['p']) && $_GET['p']==$this->plugName)) {
    echo '<link rel="stylesheet" type="text/css" href="'.PLX_PLUGINS.$this->plugName.'/css/administration.css" />'."\n";
-   echo '<link rel="stylesheet" type="text/css" href="'.PLX_PLUGINS.$this->plugName.'/css/tabs.css" />'."\n";
+   if($this->aLangs)
+    echo '<link rel="stylesheet" type="text/css" href="'.PLX_PLUGINS.$this->plugName.'/css/tabs.css" />'."\n";
    echo '<noscript><style>.hide{display:inherit !important;}</style></noscript>'."\n";
   }
  }
@@ -228,7 +242,7 @@ class plxMyShop extends plxPlugin {
             <input type="hidden" name="idP" value="'.htmlspecialchars($k).'" />
             <sub><input class="miniDel badge red" type="submit" id="remProd'.$k.'" name="remProd" value="-" title="'.$this->getLang('L_PUBLIC_DEL_BASKET').'"/></sub>
            </form>
-           <a href="'.$this->productRUrl($k).'">'.$this->aProds[$k]['name'].'</a><sup><span class="badge">'.$v.'</span></sup></li>'.PHP_EOL;
+           <a href="'.$this->productRUrl($k).'">'.$this->aProds[$this->default_lang][$k]['name'].'</a><sup><span class="badge">'.$v.'</span></sup></li>'.PHP_EOL;
    }
    echo '</ul>
    <p>'.($class!="active"?'<a class="button blue" href="'.$this->plxMotor->urlRewrite('?'.$this->lang.'boutique/panier#panier').'" title="'.$this->getLang('L_PUBLIC_BASKET_MINI_TITLE').'">'.$this->getLang('L_PUBLIC_BASKET_MINI').'</a>':'').'</p>'.PHP_EOL;
@@ -496,12 +510,12 @@ var mindays= <?php echo $this->getParam("delivery_nb_days"); ?>;
 var today = new Date();
 var nextdelivery = new Date();
 nextdelivery.setDate(today.getDate() + mindays);
-<?php echo $this->plxMotor->aConf['default_lang']!='en' ? "moment.locale('".$this->plxMotor->aConf['default_lang']."');" : ''; ?>
+<?php echo $this->default_lang!='en' ? "moment.locale('".$this->default_lang."');" : ''; ?>
 var picker_date = new Pikaday(
     {
         field: document.getElementById('id_deliverydate'),
         format: '<?php $this->lang("L_FORMAT_PIKADAY"); ?>',
-<?php if($this->plxMotor->aConf['default_lang']!='en')$this->lang("L_I18N_PIKADAY"); ?>
+<?php if($this->default_lang!='en')$this->lang("L_I18N_PIKADAY"); ?>
         firstDay: 1,
         minDate: nextdelivery,
         maxDate: new Date(<?php echo (date('Y')+3) ?>, 12, 31),
@@ -517,7 +531,7 @@ var picker_date = new Pikaday(
  // hook js du Panier
  public function themeEndHeadDeliverydateJs(){ ?>
   <link rel="stylesheet" href="<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/css/pikaday.css" media="screen"/>
-  <script type='text/javascript' src='<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/moment-<?php echo $this->plxMotor->aConf['default_lang']!='en' ? 'with-locales' : ''; ?>.min.js'></script>
+  <script type='text/javascript' src='<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/moment<?php echo $this->default_lang!='en' ? '-with-locales' : ''; ?>.min.js'></script>
   <script type='text/javascript' src='<?php echo $this->plxMotor->racine . PLX_PLUGINS;?>plxMyShop/js/pikaday.js'></script>
 <?php
  }
@@ -537,14 +551,15 @@ var picker_date = new Pikaday(
   * @author Stephane F
   **/
  public function plxShowConstruct(){
-  if (isset($this->aProds[$this->productNumber()]['name'])){
+  if (isset($this->aProds[$this->default_lang][$this->productNumber()]['name'])){
    # infos sur la page statique
    $string  = "if(\$this->plxMotor->mode=='product'){";
+   $string .= " \$this->plxMotor->cible = rtrim(\$this->plxMotor->cible,'form');";//remove "form" in static filename ;)
    $string .= " \$array = array();";
    $string .= " \$array[\$this->plxMotor->cible] = array(
-    'name'  => '" . $this->aProds[$this->productNumber()]["name"] . "',
+    'name'  => '" . $this->aProds[$this->default_lang][$this->productNumber()]["name"] . "',
     'menu'  => '',
-    'url'  => '/../template/affichageProduitPublic',
+    'url'  => '/template/affichageProduitPublic',
     'readable' => 1,
     'active' => 1,
     'group'  => ''
@@ -554,7 +569,6 @@ var picker_date = new Pikaday(
    echo "<?php ".$string." ?>";
   }
  }
-
  public function AdminPrepend(){
   $this->plxMotor = plxAdmin::getInstance();
 
@@ -677,13 +691,12 @@ var picker_date = new Pikaday(
    $this->vue->traitement();
 
    $this->plxMotor->mode = "boutique";
-   $this->plxMotor->cible = $nomPlugin;
+   $this->plxMotor->cible = $nomPlugin.'/';
    $this->plxMotor->template = $this->getParam("template");
-
-   $this->plxMotor->aConf["racine_statiques"] = "";
+   $this->plxMotor->aConf["racine_statiques"] = $this->plxMotor->aConf['racine_plugins'];
    $this->plxMotor->aStats[$this->plxMotor->cible] = array(
     "name" => $this->vue->titre(),
-    "url" => "/../{$this->plxMotor->aConf["racine_plugins"]}$nomPlugin/template/vue",#maybe in old pluxml add slash "$nomPlugin/template/vue" ?
+    "url" => "/template/vue",#maybe in old pluxml add slash "$nomPlugin/template/vue" ?
     "active" => 1,
     "menu" => "non",
     "readable" => 1,
@@ -695,13 +708,13 @@ var picker_date = new Pikaday(
   // pages des produits et des catégories
   elseif ($this->plxMotor->get AND preg_match("~^".str_replace('/','\\/',$this->lang)."product([0-9]+)\/?([a-z0-9-]+)?~", $this->plxMotor->get, $capture)){
    $this->idProduit = str_pad($capture[1], 3, "0", STR_PAD_LEFT);
-   if(!isset($this->aProds[$this->productNumber()]) OR !$this->aProds[$this->productNumber()]['active']){
+   if(!isset($this->aProds[$this->default_lang][$this->productNumber()]) OR !$this->aProds[$this->default_lang][$this->productNumber()]['active']){
     $this->plxMotor->error404(L_ERR_PAGE_NOT_FOUND);
    }else{
-    if(isset($capture[2]) AND $this->aProds[$this->productNumber()]['url']==$capture[2]){
-     $template = $this->aProds[$this->productNumber()]["template"] === ""
+    if(isset($capture[2]) AND $this->aProds[$this->default_lang][$this->productNumber()]['url']==$capture[2]){
+     $template = $this->aProds[$this->default_lang][$this->productNumber()]["template"] === ""
        ? $this->getParam('template')
-       : $this->aProds[$this->productNumber()]["template"];
+       : $this->aProds[$this->default_lang][$this->productNumber()]["template"];
 
      $this->plxMotor->mode = "product";
      $this->plxMotor->aConf["racine_statiques"] = "";
@@ -709,7 +722,7 @@ var picker_date = new Pikaday(
      $this->plxMotor->template = $template;
      echo "<?php return TRUE;?>";
     }else{
-     $this->redir301($this->plxMotor->urlRewrite('?product'.intval($this->idProduit).'/'.$this->aProds[$this->productNumber()]['url']));
+     $this->redir301($this->plxMotor->urlRewrite('?product'.intval($this->idProduit).'/'.$this->aProds[$this->default_lang][$this->productNumber()]['url']));
     }
    }
   }
@@ -735,8 +748,8 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function SitemapStatics(){
-  if (isset($this->aProds) && is_array($this->aProds)){
-   foreach($this->aProds as $key => $value){
+  if (isset($this->aProds[$this->default_lang]) && is_array($this->aProds[$this->default_lang])){
+   foreach($this->aProds[$this->default_lang] as $key => $value){
     if ($value['active']==1 &&  $value['readable']==1):
      echo '<?php
      echo "\n";
@@ -760,84 +773,93 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function getProducts($filename=''){
-  $filename = $filename=='' ? PLX_ROOT.PLX_CONFIG_PATH.'products.xml' : $filename;
-  if(!is_file($filename)) return;
+  $aLangs = ($this->aLangs)?$this->aLangs:array($this->default_lang);
+  $filenameOrigin = $filename;
+  foreach($aLangs as $lang) {
+   $lgf=($this->aLangs)?$lang.'/':'';//folders
+   $lng=($this->aLangs)?'_'.$lang:'';//post vars
+   $filename = $filenameOrigin=='' ? PLX_ROOT.PLX_CONFIG_PATH.$lgf.'products.xml' : $filename;
+   $this->aProds[$lang]=false;
+   if(!is_file($filename)){ 
+    touch($filename);//create it
+    continue;
+   }
+   # Mise en place du parseur XML
+   $data = implode('',file($filename));
+   $parser = xml_parser_create(PLX_CHARSET);
+   xml_parser_set_option($parser,XML_OPTION_CASE_FOLDING,0);
+   xml_parser_set_option($parser,XML_OPTION_SKIP_WHITE,0);
+   xml_parse_into_struct($parser,$data,$values,$iTags);
+   xml_parser_free($parser);
+   if(isset($iTags['product']) AND isset($iTags['name'])){
+    $nb = sizeof($iTags['name']);
+    $size=ceil(sizeof($iTags['product'])/$nb);
+    for($i=0;$i<$nb;$i++){
+     $attributes = $values[$iTags['product'][$i*$size]]['attributes'];
+     $number = $attributes['number'];
 
-  # Mise en place du parseur XML
-  $data = implode('',file($filename));
-  $parser = xml_parser_create(PLX_CHARSET);
-  xml_parser_set_option($parser,XML_OPTION_CASE_FOLDING,0);
-  xml_parser_set_option($parser,XML_OPTION_SKIP_WHITE,0);
-  xml_parse_into_struct($parser,$data,$values,$iTags);
-  xml_parser_free($parser);
-  if(isset($iTags['product']) AND isset($iTags['name'])){
-   $nb = sizeof($iTags['name']);
-   $size=ceil(sizeof($iTags['product'])/$nb);
-   for($i=0;$i<$nb;$i++){
-    $attributes = $values[$iTags['product'][$i*$size]]['attributes'];
-    $number = $attributes['number'];
+     # Recuperation du nom du produit
+     $this->aProds[$lang][$number]['name']=plxUtils::getValue($values[$iTags['name'][$i]]['value']);
 
-    # Recuperation du nom du produit
-    $this->aProds[$number]['name']=plxUtils::getValue($values[$iTags['name'][$i]]['value']);
+     # Recuperation prix ttc
+     $pricettc = plxUtils::getValue($iTags['pricettc'][$i]);
+     $this->aProds[$lang][$number]['pricettc']=plxUtils::getValue($values[$pricettc]['value']);
 
-    # Recuperation prix ttc
-    $pricettc = plxUtils::getValue($iTags['pricettc'][$i]);
-    $this->aProds[$number]['pricettc']=plxUtils::getValue($values[$pricettc]['value']);
+     # Recuperation noaddcart
+     $noaddcart = plxUtils::getValue($iTags['noaddcart'][$i]);
+     $this->aProds[$lang][$number]['noaddcart']=plxUtils::getValue($values[$noaddcart]['value']);
+     $notice_noaddcart = plxUtils::getValue($iTags['notice_noaddcart'][$i]);
+     $this->aProds[$lang][$number]['notice_noaddcart']=plxUtils::getValue($values[$notice_noaddcart]['value']);
+     # Recuperation nombre en stock
+     $iteminstock = plxUtils::getValue($iTags['iteminstock'][$i]);
+     $this->aProds[$lang][$number]['iteminstock']=plxUtils::getValue($values[$iteminstock]['value']);
 
-    # Recuperation noaddcart
-    $noaddcart = plxUtils::getValue($iTags['noaddcart'][$i]);
-    $this->aProds[$number]['noaddcart']=plxUtils::getValue($values[$noaddcart]['value']);
-    $notice_noaddcart = plxUtils::getValue($iTags['notice_noaddcart'][$i]);
-    $this->aProds[$number]['notice_noaddcart']=plxUtils::getValue($values[$notice_noaddcart]['value']);
-    # Recuperation nombre en stock
-    $iteminstock = plxUtils::getValue($iTags['iteminstock'][$i]);
-    $this->aProds[$number]['iteminstock']=plxUtils::getValue($values[$iteminstock]['value']);
+     # Recuperation poid
+     $poidg = plxUtils::getValue($iTags['poidg'][$i]);
+     $this->aProds[$lang][$number]['poidg']=plxUtils::getValue($values[$poidg]['value']);
 
-    # Recuperation poid
-    $poidg = plxUtils::getValue($iTags['poidg'][$i]);
-    $this->aProds[$number]['poidg']=plxUtils::getValue($values[$poidg]['value']);
+     # Recuperation image
+     $image = plxUtils::getValue($iTags['image'][$i]);
+     $this->aProds[$lang][$number]['image']=plxUtils::getValue($values[$image]['value']);
 
-    # Recuperation image
-    $image = plxUtils::getValue($iTags['image'][$i]);
-    $this->aProds[$number]['image']=plxUtils::getValue($values[$image]['value']);
+     # Recuperation de la balise title
+     $title_htmltag = plxUtils::getValue($iTags['title_htmltag'][$i]);
+     $this->aProds[$lang][$number]['title_htmltag']=plxUtils::getValue($values[$title_htmltag]['value']);
 
-    # Recuperation de la balise title
-    $title_htmltag = plxUtils::getValue($iTags['title_htmltag'][$i]);
-    $this->aProds[$number]['title_htmltag']=plxUtils::getValue($values[$title_htmltag]['value']);
+     # Recuperation du meta description
+     $meta_description = plxUtils::getValue($iTags['meta_description'][$i]);
+     $this->aProds[$lang][$number]['meta_description']=plxUtils::getValue($values[$meta_description]['value']);
 
-    # Recuperation du meta description
-    $meta_description = plxUtils::getValue($iTags['meta_description'][$i]);
-    $this->aProds[$number]['meta_description']=plxUtils::getValue($values[$meta_description]['value']);
+     # Recuperation du meta keywords
+     $meta_keywords = plxUtils::getValue($iTags['meta_keywords'][$i]);
+     $this->aProds[$lang][$number]['meta_keywords']=plxUtils::getValue($values[$meta_keywords]['value']);
 
-    # Recuperation du meta keywords
-    $meta_keywords = plxUtils::getValue($iTags['meta_keywords'][$i]);
-    $this->aProds[$number]['meta_keywords']=plxUtils::getValue($values[$meta_keywords]['value']);
+     # Recuperation du groupe du produit
+     $this->aProds[$lang][$number]['group']=plxUtils::getValue($values[$iTags['group'][$i]]['value']);
 
-    # Recuperation du groupe du produit
-    $this->aProds[$number]['group']=plxUtils::getValue($values[$iTags['group'][$i]]['value']);
+     # Recuperation du de la variable categorie
+     $this->aProds[$lang][$number]['pcat']=plxUtils::getValue($values[$iTags['pcat'][$i]]['value']);
 
-    # Recuperation du de la variable categorie
-    $this->aProds[$number]['pcat']=plxUtils::getValue($values[$iTags['pcat'][$i]]['value']);
+     $this->aProds[$lang][$number]['menu']=plxUtils::getValue($values[$iTags['menu'][$i]]['value']);
 
-    $this->aProds[$number]['menu']=plxUtils::getValue($values[$iTags['menu'][$i]]['value']);
+     # Recuperation de l'url du produit
+     $this->aProds[$lang][$number]['url']=strtolower($attributes['url']);
 
-    # Recuperation de l'url du produit
-    $this->aProds[$number]['url']=strtolower($attributes['url']);
+     # Recuperation de l'etat du produit
+     $this->aProds[$lang][$number]['active']=intval($attributes['active']);
 
-    # Recuperation de l'etat du produit
-    $this->aProds[$number]['active']=intval($attributes['active']);
+     # recuperation du fichier template
+     $this->aProds[$lang][$number]['template']=isset($attributes['template'])?$attributes['template']:$this->getParam('template');
 
-    # recuperation du fichier template
-    $this->aProds[$number]['template']=isset($attributes['template'])?$attributes['template']:$this->getParam('template');
+     # On verifie que le produit existe bien
+     if($this->aLangs)
+      $file = PLX_ROOT.$this->aConf['racine_products_lang'].$number.'.'.$attributes['url'].'.php';
+     else
+      $file = PLX_ROOT.$this->aConf['racine_products'].$number.'.'.$attributes['url'].'.php';
 
-    # On verifie que le produit existe bien
-    if($this->aLangs)
-     $file = PLX_ROOT.$this->aConf['racine_products_lang'].$number.'.'.$attributes['url'].'.php';
-    else
-     $file = PLX_ROOT.$this->aConf['racine_products'].$number.'.'.$attributes['url'].'.php';
-
-    # On test si le fichier est lisible
-    $this->aProds[$number]['readable'] = (is_readable($file) ? 1 : 0);
+     # On test si le fichier est lisible
+     $this->aProds[$lang][$number]['readable'] = (is_readable($file) ? 1 : 0);
+    }
    }
   }
  }
@@ -850,141 +872,131 @@ var picker_date = new Pikaday(
   * @author David L.
   **/
  public function editProducts($content, $action=false){
-  $save = $this->aProds;
-  # suppression
-  if(!empty($content['selection']) AND $content['selection']=='delete' AND isset($content['idProduct'])){
-   foreach($content['idProduct'] as $product_id){
-
-    if($this->aLangs){
-     foreach ($this->aLangs as $lang){
-      $filename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$lang.'/'.$product_id.'.'.$this->aProds[$product_id]['url'].'.php';
-      if(is_file($filename)) unlink($filename);
-     }
-    }
-    else{
-     $filename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$product_id.'.'.$this->aProds[$product_id]['url'].'.php';
+  $retour = $reterr = '';
+  $dfltLng = '_'.$this->default_lang;
+  $aLangs = ($this->aLangs)?$this->aLangs:array($this->default_lang);
+  foreach($aLangs as $lang) {
+   $save = $this->aProds[$lang];
+   $lgf=($this->aLangs)?$lang.'/':'';//folders
+   $lng=($this->aLangs)?'_'.$lang:'';//post vars
+   # suppression
+   if(!empty($content['selection']) AND $content['selection']=='delete' AND isset($content['idProduct'])){
+    foreach($content['idProduct'] as $product_id){
+     $filename = PLX_ROOT.$this->aConf['racine_products'].$lgf.$product_id.'.'.$this->aProds[$lang][$product_id]['url'].'.php';
      if(is_file($filename)) unlink($filename);
-    }
-
-    # si le produit supprimée est en page d'accueil on met à jour le parametre
-    unset($this->aProds[$product_id]);
-    $action = true;
-   }
-  }
-  # mise à jour de la liste des produits
-  elseif(!empty($content['update'])){
-   foreach($content['productNum'] as $product_id){
-    $stat_name = $content[$product_id.'_name'];
-    if($stat_name!=''){
-     $url = (isset($content[$product_id.'_url'])?trim($content[$product_id.'_url']):'');
-     $stat_url = ($url!=''?plxUtils::title2url($url):plxUtils::title2url($stat_name));
-     if($stat_url=='') $stat_url = L_DEFAULT_NEW_PRODUCT_URL;
-     # On vérifie si on a besoin de renommer le fichier du produit
-     if(isset($this->aProds[$product_id]) AND $this->aProds[$product_id]['url']!=$stat_url){
-
-      if($this->aLangs){
-       foreach ($this->aLangs as $lang){
-        $oldfilename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$lang.'/'.$product_id.'.'.$this->aProds[$product_id]['url'].'.php';
-        $newfilename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$lang.'/'.$product_id.'.'.$stat_url.'.php';
-        if(is_file($oldfilename)) rename($oldfilename, $newfilename);
-       }
-      }
-      $oldfilename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$product_id.'.'.$this->aProds[$product_id]['url'].'.php';
-      $newfilename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$product_id.'.'.$stat_url.'.php';
-      if(is_file($oldfilename)) rename($oldfilename, $newfilename);
-     }
-     $this->aProds[$product_id]['pcat'] = trim($content[$product_id.'_pcat']);
-     $this->aProds[$product_id]['menu'] = trim($content[$product_id.'_menu']);
-     $this->aProds[$product_id]['group'] = (isset($this->aProds[$product_id]['group'])?$this->aProds[$product_id]['group']:'');
-     $this->aProds[$product_id]['name'] = self::apostrophe($stat_name);
-     $this->aProds[$product_id]['url'] = plxUtils::checkSite($url)?$url:$stat_url;
-     $this->aProds[$product_id]['active'] = $content[$product_id.'_active'];
-     $this->aProds[$product_id]['ordre'] = intval($content[$product_id.'_ordre']);
-     $this->aProds[$product_id]['template'] = (isset($this->aProds[$product_id]['template'])?$this->aProds[$product_id]['template']:$this->getParam('template'));
-     $this->aProds[$product_id]['title_htmltag'] = (isset($this->aProds[$product_id]['title_htmltag'])?$this->aProds[$product_id]['title_htmltag']:'');
-     $this->aProds[$product_id]['image'] = (isset($this->aProds[$product_id]['image'])?$this->aProds[$product_id]['image']:'');
-     $this->aProds[$product_id]['noaddcart'] = (isset($this->aProds[$product_id]['noaddcart'])?$this->aProds[$product_id]['noaddcart']:'');
-     $this->aProds[$product_id]['iteminstock'] = (isset($this->aProds[$product_id]['iteminstock'])?$this->aProds[$product_id]['iteminstock']:'');
-     $this->aProds[$product_id]['notice_noaddcart'] = (isset($this->aProds[$product_id]['notice_noaddcart'])?$this->aProds[$product_id]['notice_noaddcart']:'');
-     $this->aProds[$product_id]['pricettc'] = (isset($this->aProds[$product_id]['pricettc'])?$this->aProds[$product_id]['pricettc']:'');
-     $this->aProds[$product_id]['poidg'] = (isset($this->aProds[$product_id]['poidg'])?$this->aProds[$product_id]['poidg']:'');
-     $this->aProds[$product_id]['meta_description'] = (isset($this->aProds[$product_id]['meta_description'])?$this->aProds[$product_id]['meta_description']:'');
-     $this->aProds[$product_id]['meta_keywords'] = (isset($this->aProds[$product_id]['meta_keywords'])?$this->aProds[$product_id]['meta_keywords']:'');
+     # si le produit supprimée est en page d'accueil on met à jour le parametre
+     unset($this->aProds[$lang][$product_id]);
      $action = true;
     }
    }
-   # On va trier les clés selon l'ordre choisi
-   if(sizeof($this->aProds)>0) uasort($this->aProds, create_function('$a, $b', 'return $a["ordre"]>$b["ordre"];'));
-  }
-  # sauvegarde
-  if($action){
-   $products_name = array();
-   $products_url = array();
-   # On génére le fichier XML
-   $xml = "<?xml version=\"1.0\" encoding=\"".PLX_CHARSET."\"?>\n";
-   $xml .= "<document>\n";
-   if (isset($this->aProds) && is_array($this->aProds)){
-    foreach($this->aProds as $product_id => $product){
-     # garder une compatibilité de l'image avec l'existant.
-     $product['image'] = str_replace($this->plxMotor->aConf['medias'],'',$product['image']);
-     # control de l'unicité du titre de la page
-     if(in_array($product['name'], $products_name))
-      return plxMsg::Error(L_ERR_PRODUCT_ALREADY_EXISTS.' : '.plxUtils::strCheck($product['name']));
-     else
-      $products_name[] = $product['name'];
-
-     # control de l'unicité de l'url de la page
-     if(in_array($product['url'], $products_url)){
-      $this->aProds = $save;
-      return plxMsg::Error(L_ERR_URL_ALREADY_EXISTS.' : '.plxUtils::strCheck($product['url']));
+   # mise à jour de la liste des produits
+   elseif(!empty($content['update'])){
+    foreach($content['productNum'] as $product_id){
+     $stat_name = isset($content[$product_id.'_name'.$lng])?$content[$product_id.'_name'.$lng]:$content[$product_id.'_name'.$dfltLng];
+     if($stat_name!=''){
+      $url = (isset($content[$product_id.'_url'.$lng])?trim($content[$product_id.'_url'.$lng]):'');
+      $stat_url = ($url!=''?plxUtils::title2url($url):plxUtils::title2url($stat_name));
+      if($stat_url=='') $stat_url = L_DEFAULT_NEW_PRODUCT_URL;
+      # On vérifie si on a besoin de renommer le fichier du produit
+      if(isset($this->aProds[$lang][$product_id]) AND $this->aProds[$lang][$product_id]['url']!=$stat_url){
+       $oldfilename = PLX_ROOT.$this->aConf['racine_products'].$lgf.$product_id.'.'.$this->aProds[$lang][$product_id]['url'].'.php';
+       $newfilename = PLX_ROOT.$this->aConf['racine_products'].$lgf.$product_id.'.'.$stat_url.'.php';
+       if(is_file($oldfilename)) rename($oldfilename, $newfilename);
+      }
+      $this->aProds[$lang][$product_id]['pcat'] = trim(isset($content[$product_id.'_pcat'.$lng])?$content[$product_id.'_pcat'.$lng]:$content[$product_id.'_pcat'.$dfltLng]);
+      $this->aProds[$lang][$product_id]['menu'] = trim(isset($content[$product_id.'_menu'.$lng])?$content[$product_id.'_menu'.$lng]:'');
+      $this->aProds[$lang][$product_id]['group'] = isset($this->aProds[$lang][$product_id]['group'])?$this->aProds[$lang][$product_id]['group']:'';
+      $this->aProds[$lang][$product_id]['name'] = self::apostrophe($stat_name);
+      $this->aProds[$lang][$product_id]['url'] = plxUtils::checkSite($url)?$url:$stat_url;
+      $this->aProds[$lang][$product_id]['active'] = isset($content[$product_id.'_active'.$lng])?$content[$product_id.'_active'.$lng]:$content[$product_id.'_active'.$dfltLng];
+      $this->aProds[$lang][$product_id]['ordre'] = intval(isset($content[$product_id.'_ordre'.$lng])?$content[$product_id.'_ordre'.$lng]:$content[$product_id.'_ordre'.$dfltLng]);
+      $this->aProds[$lang][$product_id]['template'] = isset($this->aProds[$lang][$product_id]['template'])?$this->aProds[$lang][$product_id]['template']:$this->getParam('template');
+      $this->aProds[$lang][$product_id]['title_htmltag'] = isset($this->aProds[$lang][$product_id]['title_htmltag'])?$this->aProds[$lang][$product_id]['title_htmltag']:'';
+      $this->aProds[$lang][$product_id]['image'] = isset($this->aProds[$lang][$product_id]['image'])?$this->aProds[$lang][$product_id]['image']:'';
+      $this->aProds[$lang][$product_id]['noaddcart'] = isset($this->aProds[$lang][$product_id]['noaddcart'])?$this->aProds[$lang][$product_id]['noaddcart']:'';
+      $this->aProds[$lang][$product_id]['iteminstock'] = isset($this->aProds[$lang][$product_id]['iteminstock'])?$this->aProds[$lang][$product_id]['iteminstock']:'';
+      $this->aProds[$lang][$product_id]['notice_noaddcart'] = isset($this->aProds[$lang][$product_id]['notice_noaddcart'])?$this->aProds[$lang][$product_id]['notice_noaddcart']:'';
+      $this->aProds[$lang][$product_id]['pricettc'] = isset($this->aProds[$lang][$product_id]['pricettc'])?$this->aProds[$lang][$product_id]['pricettc']:'';
+      $this->aProds[$lang][$product_id]['poidg'] = isset($this->aProds[$lang][$product_id]['poidg'])?$this->aProds[$lang][$product_id]['poidg']:'';
+      $this->aProds[$lang][$product_id]['meta_description'] = isset($this->aProds[$lang][$product_id]['meta_description'])?$this->aProds[$lang][$product_id]['meta_description']:'';
+      $this->aProds[$lang][$product_id]['meta_keywords'] = isset($this->aProds[$lang][$product_id]['meta_keywords'])?$this->aProds[$lang][$product_id]['meta_keywords']:'';
+      $action = true;
      }
-     else
-      $products_url[] = $product['url'];
-     $xml .= "\t<product number=\"".$product_id."\" active=\"".$product['active']."\" url=\"".$product['url']."\" template=\"".basename($product['template'])."\">";
-     $xml .= "<pcat><![CDATA[".plxUtils::cdataCheck($product['pcat'])."]]></pcat>";
-     $xml .= "<menu><![CDATA[".plxUtils::cdataCheck($product['menu'])."]]></menu>";
-     $xml .= "<group><![CDATA[".plxUtils::cdataCheck($product['group'])."]]></group>";
-     $xml .= "<name><![CDATA[".plxUtils::cdataCheck($product['name'])."]]></name>";
-     $xml .= "<image><![CDATA[".plxUtils::cdataCheck($product['image'])."]]></image>";
-     $xml .= "<noaddcart><![CDATA[".plxUtils::cdataCheck($product['noaddcart'])."]]></noaddcart>";
-     $xml .= "<iteminstock><![CDATA[".plxUtils::cdataCheck($product['iteminstock'])."]]></iteminstock>";
-     $xml .= "<notice_noaddcart><![CDATA[".plxUtils::cdataCheck(($product['noaddcart']&&empty($product['notice_noaddcart']))?$this->getLang('L_NOTICE_NOADDCART'):$product['notice_noaddcart'])."]]></notice_noaddcart>";
-     $xml .= "<pricettc><![CDATA[".plxUtils::cdataCheck($product['pricettc'])."]]></pricettc>";
-     $xml .= "<poidg><![CDATA[".plxUtils::cdataCheck(($product['poidg']==0?"0.0":$product['poidg']))."]]></poidg>";
-     $xml .= "<meta_description><![CDATA[".plxUtils::cdataCheck($product['meta_description'])."]]></meta_description>";
-     $xml .= "<meta_keywords><![CDATA[".plxUtils::cdataCheck($product['meta_keywords'])."]]></meta_keywords>";
-     $xml .= "<title_htmltag><![CDATA[".plxUtils::cdataCheck($product['title_htmltag'])."]]></title_htmltag>";
-     # Hook plugins
-     //eval($this->plxPlugins->callHook('plxAdminEditProductsXml'));
-     $xml .= "</product>\n";
+    }
+    # On va trier les clés selon l'ordre choisi
+    if(sizeof($this->aProds[$lang])>0) uasort($this->aProds[$lang], create_function('$a, $b', 'return $a["ordre"]>$b["ordre"];'));
+   }
+   # sauvegarde
+   if($action){
+    $products_name = array();
+    $products_url = array();
+    # On génére le fichier XML
+    $xml = "<?xml version=\"1.0\" encoding=\"".PLX_CHARSET."\"?>\n";
+    $xml .= "<document>\n";
+    if (isset($this->aProds[$lang]) && is_array($this->aProds[$lang])){
+     foreach($this->aProds[$lang] as $product_id => $product){
+      # garder une compatibilité de l'image avec l'existant.
+      $product['image'] = str_replace($this->plxMotor->aConf['medias'],'',$product['image']);
+      # control de l'unicité du titre de la page
+      if(in_array($product['name'], $products_name))
+       $reterr .= L_ERR_PRODUCT_ALREADY_EXISTS.' : '.plxUtils::strCheck($product['name']).PHP_EOL;
+      else
+       $products_name[] = $product['name'];
+
+      # control de l'unicité de l'url de la page
+      if(in_array($product['url'], $products_url)){
+       $this->aProds[$lang] = $save;
+       $reterr .= L_ERR_URL_ALREADY_EXISTS.' : '.plxUtils::strCheck($product['url']).PHP_EOL;
+      }
+      else
+       $products_url[] = $product['url'];
+      $xml .= "\t<product number=\"".$product_id."\" active=\"".$product['active']."\" url=\"".$product['url']."\" template=\"".basename($product['template'])."\">";
+      $xml .= "<pcat><![CDATA[".plxUtils::cdataCheck($product['pcat'])."]]></pcat>";
+      $xml .= "<menu><![CDATA[".plxUtils::cdataCheck($product['menu'])."]]></menu>";
+      $xml .= "<group><![CDATA[".plxUtils::cdataCheck($product['group'])."]]></group>";
+      $xml .= "<name><![CDATA[".plxUtils::cdataCheck($product['name'])."]]></name>";
+      $xml .= "<image><![CDATA[".plxUtils::cdataCheck($product['image'])."]]></image>";
+      $xml .= "<noaddcart><![CDATA[".plxUtils::cdataCheck($product['noaddcart'])."]]></noaddcart>";
+      $xml .= "<iteminstock><![CDATA[".plxUtils::cdataCheck($product['iteminstock'])."]]></iteminstock>";
+      $xml .= "<notice_noaddcart><![CDATA[".plxUtils::cdataCheck(($product['noaddcart']&&empty($product['notice_noaddcart']))?$this->getLang('L_NOTICE_NOADDCART'):$product['notice_noaddcart'])."]]></notice_noaddcart>";
+      $xml .= "<pricettc><![CDATA[".plxUtils::cdataCheck($product['pricettc'])."]]></pricettc>";
+      $xml .= "<poidg><![CDATA[".plxUtils::cdataCheck(($product['poidg']==0?"0.0":$product['poidg']))."]]></poidg>";
+      $xml .= "<meta_description><![CDATA[".plxUtils::cdataCheck($product['meta_description'])."]]></meta_description>";
+      $xml .= "<meta_keywords><![CDATA[".plxUtils::cdataCheck($product['meta_keywords'])."]]></meta_keywords>";
+      $xml .= "<title_htmltag><![CDATA[".plxUtils::cdataCheck($product['title_htmltag'])."]]></title_htmltag>";
+      # Hook plugins
+      //eval($this->plxPlugins->callHook('plxAdminEditProductsXml'));
+      $xml .= "</product>\n";
+     }
+    }
+    $xml .= "</document>";
+    # On écrit le fichier si une action valide a été faite
+    if(plxUtils::write($xml,PLX_ROOT.PLX_CONFIG_PATH.$lgf.'products.xml')){
+     $retour .= $lang.', ';
+    } else {
+     $this->aProds[$lang] = $save;
+     $reterr .= L_SAVE_ERR.' '.PLX_ROOT.PLX_CONFIG_PATH.$lgf.'products.xml'.PHP_EOL;
     }
    }
-   $xml .= "</document>";
-   # On écrit le fichier si une action valide a été faite
-   if(plxUtils::write($xml,PLX_ROOT.PLX_CONFIG_PATH.'products.xml')){
-    if($action===true) return plxMsg::Info(L_SAVE_SUCCESSFUL);
-   } else {
-    $this->aProds = $save;
-    if($action===true) return plxMsg::Error(L_SAVE_ERR.' '.PLX_ROOT.PLX_CONFIG_PATH.'products.xml');
-   }
+  }
+  if($action===true) {
+   $reterr = !empty($reterr)?plxMsg::Error(nl2br($reterr)):'';
+   return $reterr.plxMsg::Info(L_SAVE_SUCCESSFUL.' ('.trim($retour,', ').')');
   }
  }
- 
+
  /**
   * Méthode qui lit le fichier d'un produit
   * @param num numero du fichier du produit
   * @return string contenu de la page
   * @author Stephane F.
   **/
- public function getFileProduct($num,$langue){
-  if (!empty($langue) && $this->aLangs)
-   $langue .= '/';
-  else
-   $langue = '';
-
+ public function getFileProduct($num,$lang){
+  $lgf=(!empty($lang) && $this->aLangs)?$lang.'/':'';//folders
+  $lng=(!empty($lang) && $this->aLangs)?$lang:$this->default_lang;//Product lang or not
   $content = '';
   # Emplacement de la page
-  $filename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$langue.$num.'.'.$this->aProds[ $num ]['url'].'.php';
+  $filename = PLX_ROOT.$this->aConf['racine_products'].$lgf.$num.'.'.$this->aProds[$lng][$num]['url'].'.php';
   if(is_file($filename) AND filesize($filename) > 0){
    if($f = fopen($filename, 'r')){
     $content = fread($f, filesize($filename));
@@ -993,8 +1005,9 @@ var picker_date = new Pikaday(
     return $content;
    }
   }
-  if ($this->aLangs && empty(trim($content))){ # si contenu vide en multilingue on essaye de recuperer sans la langue.
-   $filename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$num.'.'.$this->aProds[ $num ]['url'].'.php';
+  $content = trim($content);//in php < 5.5: Can't use function return value in write context with this: empty(trim($content)
+  if ($this->aLangs && empty($content)){// si contenu vide en multilingue on essaye de recuperer sans la langue.
+   $filename = PLX_ROOT.$this->aConf['racine_products'].$num.'.'.$this->aProds[$lng][$num]['url'].'.php';
    if(is_file($filename) AND filesize($filename) > 0){
     if($f = fopen($filename, 'r')){
      $content = fread($f, filesize($filename));
@@ -1017,55 +1030,66 @@ var picker_date = new Pikaday(
   # Hook plugins
   if(eval($this->plxMotor->plxPlugins->callHook('plxMyShopEditProductBegin'))) return;
   # Mise à jour du fichier product.xml
-  if (isset($content["listeCategories"])){
-   $this->aProds[$content['id']]['group'] = implode(",", $content["listeCategories"]);
+  $lngd=($this->aLangs)?'_'.$this->default_lang:'';//default lang 4 stock system
+  $aLangs = ($this->aLangs)?$this->aLangs:array($this->default_lang);
+  $noaddcart4all = isset($content['noaddcart4all']);//'noaddcart4all' => string 'on' OR unseted ;)
+  foreach($aLangs as $lang){//stock & weight 4 all langs
+   $lang=($this->aLangs)?'_'.$lang:'';//post vars
+   $content['iteminstock'.$lang] = $content['iteminstock'.$lngd];//with default lang stock
+   $content['poidg'.$lang] = $content['poidg'.$lngd];//with default lang weight
+   if($noaddcart4all)
+    $content['noaddcart'.$lang] = $content['noaddcart'.$lngd];//with default lang noaddcart
   }
-
-  // formatage du prix et du poids à l'édition
-  foreach (array("pricettc", "poidg") as $champ){
-   $content[$champ] = floatval(number_format($content[$champ], 2, ".", ""));
-  }
-
-  // données du produit
-  $this->aProds[$content['id']]['image'] = $content['image'];
-  $this->aProds[$content['id']]['noaddcart'] = $content['noaddcart'];
-  $this->aProds[$content['id']]['iteminstock'] = $content['iteminstock'];
-  $this->aProds[$content['id']]['notice_noaddcart'] = $content['notice_noaddcart'];
-  $this->aProds[$content['id']]['pricettc'] = $content['pricettc'];
-  $this->aProds[$content['id']]['poidg'] = $content['poidg'];
-  $this->aProds[$content['id']]['template'] = $content['template'];
-  $this->aProds[$content['id']]['title_htmltag'] = trim($content['title_htmltag']);
-  $this->aProds[$content['id']]['meta_description'] = trim($content['meta_description']);
-  $this->aProds[$content['id']]['meta_keywords'] = trim($content['meta_keywords']);
-  # Hook plugins
-  eval($this->plxMotor->plxPlugins->callHook('plxMyShopEditProduct'));
-
-  if($this->editProducts(null,true)){
-   if (!is_dir(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')))){
-    mkdir(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')), 0755, true);
+  foreach($aLangs as $lang) {
+   $lgf=($this->aLangs)?$lang.'/':'';//folders
+   $lng=($this->aLangs)?'_'.$lang:'';//post vars
+   if (isset($content['listeCategories'.$lng])){
+    $this->aProds[$lang][$content['id']]['group'] = implode(",", $content['listeCategories'.$lng]);
    }
-   $aLangs = array($this->plxMotor->aConf['default_lang']);
-   if($this->aLangs){
+
+   // formatage du prix et du poids à l'édition
+   foreach (array("pricettc", "poidg") as $champ){
+    $content[$champ.$lng] = floatval(number_format($content[$champ.$lng], 2, ".", ""));
+   }
+
+   // données du produit
+   $this->aProds[$lang][$content['id']]['image'] = $content['image'.$lng];
+   $this->aProds[$lang][$content['id']]['noaddcart'] = $content['noaddcart'.$lng];
+   $this->aProds[$lang][$content['id']]['iteminstock'] = $content['iteminstock'.$lng];
+   $this->aProds[$lang][$content['id']]['notice_noaddcart'] = $content['notice_noaddcart'.$lng];
+   $this->aProds[$lang][$content['id']]['pricettc'] = $content['pricettc'.$lng];
+   $this->aProds[$lang][$content['id']]['poidg'] = $content['poidg'.$lng];
+   $this->aProds[$lang][$content['id']]['template'] = $content['template'.$lng];
+   $this->aProds[$lang][$content['id']]['title_htmltag'] = trim($content['title_htmltag'.$lng]);
+   $this->aProds[$lang][$content['id']]['meta_description'] = trim($content['meta_description'.$lng]);
+   $this->aProds[$lang][$content['id']]['meta_keywords'] = trim($content['meta_keywords'.$lng]);
+   # Hook plugins
+   eval($this->plxMotor->plxPlugins->callHook('plxMyShopEditProduct'));
+  }
+  if($this->editProducts(null,true)){
+   if (!is_dir(PLX_ROOT.$this->aConf['racine_products'])){//créer les dossiers de sauvegarde selon la config
+    mkdir(PLX_ROOT.$this->aConf['racine_products'], 0755, true);
+   }
+   $aLangs = array($this->default_lang);
+   if($this->aLangs){//créer les dossiers de sauvegarde si MyMultilingue
     $aLangs = $this->aLangs;
     foreach ($this->aLangs as $lang){
-     if (!is_dir(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$lang.'/')){
-      mkdir(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$lang.'/', 0755, true);
+     if (!is_dir(PLX_ROOT.$this->aConf['racine_products'].$lang.'/')){
+      mkdir(PLX_ROOT.$this->aConf['racine_products'].$lang.'/', 0755, true);
      }
     }
    }
    $infos = $err = null;
-   foreach ($aLangs as $lang){
-    $url_save = '';
-    if($this->aLangs){$url_save = $lang.'/';}
-     # Génération du nom du fichier de la page statique
-     $filename = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$url_save.$content['id'].'.'.$this->aProds[ $content['id'] ]['url'].'.php';
-     # On écrit le fichier
-     if ($lang == $this->plxMotor->aConf['default_lang'])
-      $content['content_'.$lang] = $content['content'];
-     if(!plxUtils::write($content['content_'.$lang],$filename))
-      $err .= L_SAVE_ERR.' '.$filename.'<br />';
-     else
-      $infos .= $lang.', ';
+   foreach($aLangs as $lang){
+    $lgf=($this->aLangs)?$lang.'/':'';//folders
+    $lng=($this->aLangs)?'_'.$lang:'';//post vars
+    # Génération du nom du fichier de la page statique
+    $filename = PLX_ROOT.$this->aConf['racine_products'].$lgf.$content['id'].'.'.$this->aProds[$lang][ $content['id'] ]['url'].'.php';
+    # On écrit le fichier
+    if(!plxUtils::write($content['content'.$lng],$filename))
+     $err .= L_SAVE_ERR.' '.$filename.'<br />';
+    else
+     $infos .= $lang.', ';
    }
    $infos = ' ('.trim($infos,', ').')';
    $filename = ' '.str_replace($lang.'/','',$filename).' ';# on enleve la langue pour l'affichage du message
@@ -1083,15 +1107,19 @@ var picker_date = new Pikaday(
   * @author Philippe.LT, Thomas I
   **/
  public function editStocks($content){
+  $aLangs = ($this->aLangs)?$this->aLangs:array($this->default_lang);
   foreach ($content as $pId => $nb){
-   if ($this->aProds[$pId]['iteminstock'] != '' OR $this->aProds[$pId]['iteminstock'] > 0){
-    $item=array();
-    $item['changeStock'] = true;//4 activate hook plxMyShopEditProductBegin (4 changeStock only)
-    if (intval($this->aProds[$pId]['iteminstock']) >= intval($nb))
-     $this->aProds[$pId]['iteminstock'] -= intval($nb);//decrease stock 
-    if(empty($this->aProds[$pId]['iteminstock']))//if stock == 0
-     $this->aProds[$pId]['noaddcart']=1;//auto hide basket button
-    $this->editProduct($item);
+   if ($this->aProds[$this->default_lang][$pId]['iteminstock'] != '' OR $this->aProds[$this->default_lang][$pId]['iteminstock'] > 0){
+    if (intval($this->aProds[$this->default_lang][$pId]['iteminstock']) >= intval($nb)){
+     foreach($aLangs as $lang){//4 all langs
+      $item=array();
+      $item['changeStock'] = true;//4 activate hook plxMyShopEditProductBegin (4 changeStock only)
+      $this->aProds[$lang][$pId]['iteminstock'] -= intval($nb);//decrease stock
+      if(empty($this->aProds[$lang][$pId]['iteminstock']))//if stock == 0
+       $this->aProds[$lang][$pId]['noaddcart']=1;//auto hide basket button
+      $this->editProduct($item);
+     }
+    }
    }
   }
  }
@@ -1118,7 +1146,7 @@ var picker_date = new Pikaday(
   **/
  public function productId(){
   # On va verifier que la categorie existe en mode categorie
-  if($this->mode == 'product' AND isset($this->aProds[ $this->productNumber() ]))
+  if($this->mode == 'product' AND isset($this->aProds[$this->default_lang][ $this->productNumber() ]))
    return intval($this->productNumber());
  }
 
@@ -1133,15 +1161,15 @@ var picker_date = new Pikaday(
   # Recupération ID URL
   $productId = intval($this->productId());
   $productIdFill = str_pad($productId,3,'0',STR_PAD_LEFT);
-  if(!empty($productId) AND isset($this->aProds[ $productIdFill ]))
-   echo $this->urlRewrite('?'.$this->lang.'product'.$productId.'/'.$this->aProds[ $productIdFill ]['url']);
+  if(!empty($productId) AND isset($this->aProds[$this->default_lang][ $productIdFill ]))
+   echo $this->urlRewrite('?'.$this->lang.'product'.$productId.'/'.$this->aProds[$this->default_lang][ $productIdFill ]['url']);
  }
 
  public function productRUrl($key){
   # Recupération ID URL
   $productId = intval($key);
-  if(!empty($productId) AND isset($this->aProds[$key]))
-   return $this->plxMotor->urlRewrite('?'.$this->lang.'product'.$productId.'/'.$this->aProds[$key]['url']);
+  if(!empty($productId) AND isset($this->aProds[$this->default_lang][$key]))
+   return $this->plxMotor->urlRewrite('?'.$this->lang.'product'.$productId.'/'.$this->aProds[$this->default_lang][$key]['url']);
  }
 
  /**
@@ -1151,7 +1179,7 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productTitle(){
-  echo plxUtils::strCheck($this->aProds[$this->productNumber()]['name']);
+  echo plxUtils::strCheck($this->aProds[$this->default_lang][$this->productNumber()]['name']);
  }
 
  /**
@@ -1164,7 +1192,7 @@ var picker_date = new Pikaday(
   return plxUtils::strCheck(
    $this->plxMotor->urlRewrite(
     $this->cheminImages
-    . $this->aProds[$this->productNumber()]["image"]
+    . $this->aProds[$this->default_lang][$this->productNumber()]["image"]
    )
   );
  }
@@ -1178,7 +1206,7 @@ var picker_date = new Pikaday(
  public function productPriceTTC(){
 
   #echo plxUtils::strCheck($this->aProds[ $this->productNumber() ]['pricettc']);
-  return plxUtils::strCheck($this->aProds[ $this->productNumber() ]['pricettc']);
+  return plxUtils::strCheck($this->aProds[$this->default_lang][ $this->productNumber() ]['pricettc']);
  }
 
  /**
@@ -1188,7 +1216,7 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productNoAddCart(){
-  return plxUtils::strCheck($this->aProds[ $this->productNumber() ]['noaddcart']);
+  return plxUtils::strCheck($this->aProds[$this->default_lang][ $this->productNumber() ]['noaddcart']);
  }
 
  /**
@@ -1198,7 +1226,7 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productNoticeNoAddCart(){
-  return plxUtils::strCheck($this->aProds[ $this->productNumber() ]['notice_noaddcart']);
+  return plxUtils::strCheck($this->aProds[$this->default_lang][ $this->productNumber() ]['notice_noaddcart']);
  }
 
  /**
@@ -1209,7 +1237,7 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productPoidG(){
-  return plxUtils::strCheck($this->aProds[ $this->productNumber() ]['poidg']);
+  return plxUtils::strCheck($this->aProds[$this->default_lang][ $this->productNumber() ]['poidg']);
  }
 
  /**
@@ -1220,7 +1248,7 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productGroup(){
-  echo plxUtils::strCheck($this->aProds[ $this->productNumber() ]['group']);
+  echo plxUtils::strCheck($this->aProds[$this->default_lang][ $this->productNumber() ]['group']);
  }
  
  /**
@@ -1231,13 +1259,13 @@ var picker_date = new Pikaday(
   * @author David.L
   **/
  public function productGroupTitle(){
-  if ($gt=explode(',',$this->aProds[ $this->productNumber() ]['group'])){
+  if ($gt=explode(',',$this->aProds[$this->default_lang][ $this->productNumber() ]['group'])){
    $tmp=array();
    foreach($gt as $gTitle){
-    $tmp[$gTitle]=$this->aProds[$gTitle]['name'];
+    $tmp[$gTitle]=$this->aProds[$this->default_lang][$gTitle]['name'];
    }
    return $tmp;
-  } else return plxUtils::strCheck($this->aProds[$this->aProds[ $this->productNumber() ]['group']]['name']);
+  } else return plxUtils::strCheck($this->aProds[$this->default_lang][$this->aProds[ $this->productNumber() ]['group']]['name']);
  }
 
  /**
@@ -1251,8 +1279,8 @@ var picker_date = new Pikaday(
  public function productDate($format='#day #num_day #month #num_year(4)'){
 
   # On genere le nom du fichier dont on veux récupérer la date
-  $file = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$this->productNumber();
-  $file .= '.'.$this->aProds[$this->productNumber() ]['url'].'.php';
+  $file = PLX_ROOT.$this->aConf['racine_products'].$this->productNumber();
+  $file .= '.'.$this->aProds[$this->default_lang][$this->productNumber() ]['url'].'.php';
   # Test de l'existence du fichier
   if(!is_file($file)) return;
   # On récupère la date de la dernière modification du fichier qu'on formate
@@ -1268,7 +1296,7 @@ var picker_date = new Pikaday(
   **/
  public function plxShowProductContent(){
   # On va verifier que la page a inclure est lisible
-  if($this->aProds[ $this->productNumber() ]['readable'] == 1){
+  if($this->aProds[$this->default_lang][ $this->productNumber() ]['readable'] == 1){
 
    $url_read = '';
    if($this->aLangs && isset($_SESSION['lang'])){
@@ -1276,13 +1304,13 @@ var picker_date = new Pikaday(
    }
 
    # On genere le nom du fichier a inclure
-   $file = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$url_read.$this->productNumber();
-   $file .= '.'.$this->aProds[ $this->productNumber() ]['url'].'.php';
+   $file = PLX_ROOT.$this->aConf['racine_products'].$url_read.$this->productNumber();
+   $file .= '.'.$this->aProds[$this->default_lang][ $this->productNumber() ]['url'].'.php';
 
    if(!is_file($file)){
     # On tente de recuperer le contenu du fichier sans langue.
-    $file = PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$this->productNumber();
-    $file .= '.'.$this->aProds[ $this->productNumber() ]['url'].'.php';
+    $file = PLX_ROOT.$this->aConf['racine_products'].$this->productNumber();
+    $file .= '.'.$this->aProds[$this->default_lang][ $this->productNumber() ]['url'].'.php';
    }
    # Inclusion du fichier
    ob_start();
@@ -1311,15 +1339,15 @@ var picker_date = new Pikaday(
   }
 
   # On génère un nouvel objet plxGlob
-  $plxGlob_stats = plxGlob::getInstance(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$url_read);
+  $plxGlob_stats = plxGlob::getInstance(PLX_ROOT.$this->aConf['racine_products'].$url_read);
   if($files = $plxGlob_stats->query('/^'.str_pad($id,3,'0',STR_PAD_LEFT).'.[a-z0-9-]+.php$/')){
-   include(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$url_read.$files[0]);
+   include(PLX_ROOT.$this->aConf['racine_products'].$url_read.$files[0]);
   }
   else{
    # on tente sans la langue.
-   $plxGlob_stats = plxGlob::getInstance(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')));
+   $plxGlob_stats = plxGlob::getInstance(PLX_ROOT.$this->aConf['racine_products']);
    if($files = $plxGlob_stats->query('/^'.str_pad($id,3,'0',STR_PAD_LEFT).'.[a-z0-9-]+.php$/')){
-    include(PLX_ROOT.(empty($this->getParam('racine_products'))?'data/products/':$this->getParam('racine_products')).$files[0]);
+    include(PLX_ROOT.$this->aConf['racine_products'].$files[0]);
    }
   }
  }
@@ -1374,11 +1402,11 @@ var picker_date = new Pikaday(
   $this->donneesModeles["lienPanier"] = $lienPanier;
 
   # ajout du menu pour accèder aux rubriques
-  if (isset($this->aProds)
-   &&is_array($this->aProds)
+  if (isset($this->aProds[$this->default_lang])
+   &&is_array($this->aProds[$this->default_lang])
    &&("non" !== $this->getParam('afficheCategoriesMenu'))
   ){
-   foreach(array_reverse($this->aProds) as $k=>$v){
+   foreach(array_reverse($this->aProds[$this->default_lang]) as $k=>$v){
     if ($v['menu']!='non' && $v['menu']!=''){
      $k = intval($k);
      $categorieSelectionnee = (
@@ -1461,9 +1489,9 @@ var picker_date = new Pikaday(
 
   foreach ($_SESSION[$this->plugName]['prods'] as $idP => $nb){
    $productscart[$idP] = array(
-    'name' => $this->aProds[$idP]['name'],
-    'pricettc' => $this->aProds[$idP]['pricettc'] * $nb,
-    'poidg' => $this->aProds[$idP]['poidg'] * $nb,
+    'name' => $this->aProds[$this->default_lang][$idP]['name'],
+    'pricettc' => $this->aProds[$this->default_lang][$idP]['pricettc'] * $nb,
+    'poidg' => $this->aProds[$this->default_lang][$idP]['poidg'] * $nb,
     'nombre' => $nb,
    );
    $totalpricettc += $productscart[$idP]["pricettc"];
@@ -1591,8 +1619,8 @@ var picker_date = new Pikaday(
       //require PLX_PLUGINS . $this->plugName . '/classes/paypal_api/SetExpressCheckout.php';
       require PLX_PLUGINS . $this->plugName . '/classes/paypal_api/boutonPaypalSimple.php';
      }
-
-     $nf=PLX_ROOT.(empty($this->getParam('racine_commandes'))?'data/commandes/':$this->getParam('racine_commandes')).date("Y-m-d_H-i-s_").$_POST['methodpayment'].'_'.$totalpricettc.'_'.$totalpoidgshipping.'.html';
+     $lgf=($this->aLangs)?$this->default_lang.'/':'';//folders if multilingue
+     $nf=PLX_ROOT.$this->aConf['racine_commandes'].$lgf.date("Y-m-d_H-i-s_").$_POST['methodpayment'].'_'.$totalpricettc.'_'.$totalpoidgshipping.'.html';
      $monfichier = fopen($nf, 'w+');
      $commandeContent="<!DOCTYPE html>
 <html>
@@ -1701,7 +1729,7 @@ $message
    }
    //Prevenir si erreur de réglage des frais de port
    $wOrP = $this->getParam("shipping_by_price")?'p':'w';//price Or Weight
-   if(!empty($this->getParam("freeship".$wOrP)) && $kg<$this->getParam("freeship".$wOrP)){
+   if($this->getParam("freeship".$wOrP) != '' && $kg<$this->getParam("freeship".$wOrP)){
     if($kg > 0 && ($this->getParam('p'.$num) * $this->getParam('pv'.$num)) > 0){
      if($kg > $this->getParam('p'.$num)){
       $this->shipOverload = true;
@@ -1722,26 +1750,26 @@ $message
   echo '<?php
   if($op){
    if(
-    (!empty($this->getParam("freeshipw")) && $kg>=$this->getParam("freeshipw"))
+    (!!($this->getParam("freeshipw")) && $kg>=$this->getParam("freeshipw"))
     OR
-    (!empty($this->getParam("freeshipp")) && $prx>=$this->getParam("freeshipp"))
+    (!!($this->getParam("freeshipp")) && $prx>=$this->getParam("freeshipp"))
    ){
     echo "<p class=\'msgyeah\'><b>".$this->getLang("L_FREESHIP")."</b></p>";
     return true; //4 stop shippingmethod return true ;)
    }
    $freeShipM = "";
-   if(!empty($this->getParam("freeshipw")) OR !empty($this->getParam("freeshipp"))){
+   if(!!($this->getParam("freeshipw")) OR !!($this->getParam("freeshipp"))){
     $freeShipM .= "<b class=\'msgyeah2\'>".$this->getLang("L_FREESHIP")."</b>";
    }
-   if(!empty($this->getParam("freeshipw"))){
+   if(!!($this->getParam("freeshipw"))){
     $freeShipM .= "&nbsp;".$this->getLang("L_A")."&nbsp;<b class=\'msgyeah2\'>".$this->getParam("freeshipw")."&nbsp;kg</b>";
    }
-   if(!empty($this->getParam("freeshipp"))){
-    if(!empty($this->getParam("freeshipw")))
+   if(!!($this->getParam("freeshipp"))){
+    if(!!($this->getParam("freeshipw")))
      $freeShipM .= "&nbsp;".$this->getLang("L_AND");
     $freeShipM .= "&nbsp;".$this->getLang("L_A")."&nbsp;<b class=\'msgyeah2\'>".$this->pos_devise($this->getParam("freeshipp"))."</b>";
    }
-   if(!empty($freeShipM))
+   if(!!($freeShipM))
     echo "<p>".$freeShipM."</p>";
    unset($freeShipM);
   }
@@ -1749,24 +1777,24 @@ $message
  }
 
  public function menuAdmin($ongletEnCours){
-  $listeOnglets = [
-   "produits" => [
+  $listeOnglets = array(
+   "produits" => array(
     "titre" => $this->getLang("L_MENU_PRODUCTS"),
     "urlHtml" => "plugin.php?p=".$this->plugName,
-   ],
-   "categories" => [
+   ),
+   "categories" => array(
     "titre" => $this->getLang("L_MENU_CATS"),
     "urlHtml" => "plugin.php?p=".$this->plugName."&amp;mod=cat",
-   ],
-   "commandes" => [
+   ),
+   "commandes" => array(
     "titre" => $this->getLang("L_MENU_ORDERS"),
     "urlHtml" => "plugin.php?p=".$this->plugName."&amp;mod=cmd",
-   ],
-   "configuration" => [
+   ),
+   "configuration" => array(
     "titre" => $this->getLang("L_MENU_CONFIG"),
     "urlHtml" => "parametres_plugin.php?p=".$this->plugName,
-   ],
-  ];
+   ),
+  );
   foreach ($listeOnglets as $codeOnglet => $o){
 ?>
    <a href="<?php echo $o["urlHtml"];?>"><button<?php echo ($codeOnglet !== $ongletEnCours) ? "" : ' disabled="disabled" class="myhide"';?>><?php echo plxUtils::strCheck($o["titre"]);?></button></a>

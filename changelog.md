@@ -4,8 +4,7 @@
 
 ##notes, todo & suggests 4 the future##
 * Pourquoi s'affiche "Cette page est actuellement en cours de rédaction" coté public dans une catégorie? Solution: Éditer au moins une fois la catégorie de produit. Et/ou ajouter le texte et/ou l'image pour égayer ;)
-* Un Noscript avertit l'internaute au panier (et bouton produit?).
-? Admin : Faire en sorte que l'onglet de la langue en cours soit activé lors de l'édition (option)?
+* Un Noscript au bouton produit?
 ? Bizarre que cela soit le même shortcode pour les prods et les catégorie ::: prod002: [boutonPanier 002], cat001: [boutonPanier 001] [pour les categories cela affiche une vignette produit et permet même de l'ajouter au panier, qui se fait avoir, le produit "catégorie"]
 * $d = $this->donneesModeles; ($d == données modele)
 * tester paypal
@@ -14,7 +13,7 @@
 * intégrer datatable.js pour la liste des produits et/ou des catégories de produits? (+comlexe)
 * Une boutique par utilisateur?
 * Peaufiner l'aide
-* kw, meta & title en MyMultilingue
+* Titre du menu boutique et symbole monaitaire en MyMultilingue (dans le fichier de langue ou a choisir par l'admin avec des onglets dans la config, ou ...)
 
 ****
 * Si jamais configuré : petit BUG Config PAYPAL et frais de port (JavaScript), le panneau est caché. Se régle en jouant avec le l'interupteur ou après la premiere config enregistrée tout rentre dans l'ordre ;)
@@ -34,15 +33,23 @@ le plugin spxplugindowloader.2.5 provoque la perte de l'action bar aux plugins q
 
 Effet de bord : si on ajoute un shortCode [boutonPanier ###] a un prod/cat et que le panier est sur toutes les pages (il s'affiche 2 fois (av et aprés le form de commande)?????
 
-##v0.13.1r4s 24/07/2017##
-[+] Ajout d'un systeme de stock (basé sur une idée de ppmt) :utilise le nouveau hook plxMyShopEditProductBegin:: si le nombre de produits en stock est présent et que le client commande la totalité, automatiquement le produit se rend indisponible et le bouton "ajouter au panier" est remplacé par votre texte paramétré avec "produit indisponible" sur oui (d'origine "En rupture de stock").
-[+] Ajout du hook plxMyShopEditProductBegin
-[+] Ajout du hook plxMyShopEditProduct
+
+##v0.13.1r5 25/07/2017##
+[+] PHP 5.1 to 7.x (thx free.fr et Stephanovich)
+[+] Produits/Catégories/Commandes sont Multilingue (onglets des langues si Multilingue activé)
+[+] Admin user friendly, noaddcart checkbox Propagation (si noaddcart4all coché: copie du noaddcart default_lang aux autre langues, qui sont inéditable)
+Fix Url érronée de moment.js si la langue par defaut est en anglais (thx [ppmt](http://forum.pluxml.org/viewtopic.php?pid=54780#p54780))
+Fix PluXml media manager & refreshImg() locale (Si multilingue)
+[+] Style de l'onglet (produit) de la lanfue par defaut (propagation 2 stock & poids au atres langues automatique)
+[+] Systeme de stock (basé sur une idée de ppmt) (utilise le nouveau hook plxMyShopEditProductBegin) CCM: Si le nombre de produits en stock est présent et que le client commande la totalité, automatiquement le produit se rend indisponible et le bouton "ajouter au panier" est remplacé par votre texte paramétré avec "produit indisponible" sur oui (d'origine "En rupture de stock").
+[+] hook plxMyShopEditProductBegin
+[+] hook plxMyShopEditProduct
+
 
 ##v0.13.1r4 11/06/2017##
 [+] Fins de lignes unifiées par dos2unix (merci Bazooka)
-[+] Config & panier : Montant minimum pour afficher le choix du paiement par Paypal (contrib ppmy)
-[+] Config & panier : choix de date et heure de livraison (contrib ppmy)
+[+] Config & panier : Montant minimum pour afficher le choix du paiement par Paypal (contrib ppmt)
+[+] Config & panier : choix de date et heure de livraison (contrib ppmt)
 [+] get_class() et plug['name'] remplacé par plugName
 
 ##v0.13.1r3 11/05/2017##
